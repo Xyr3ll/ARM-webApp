@@ -1,6 +1,6 @@
 import React from "react";
 import "../../styles/AcademicHeadDashboard.css";
-import stiLogo from "../../assets/stilogo.png";
+import stiLogo from "../../assets/logo.jpg";
 import { HiBell, HiUserCircle } from "react-icons/hi";
 import {
   HiHome,
@@ -30,7 +30,7 @@ const AcademicHeadDashboard = () => {
     <div className="dashboard-root">
       <div className="dashboard-header">
         <div className="dashboard-topbar">
-          <img src={stiLogo} alt="STI Logo" className="dashboard-logo" />
+          <img src={stiLogo} alt="ARM Logo" className="dashboard-logo" />
           <span className="dashboard-title">Academic Resource Management</span>
           <div className="dashboard-user">
             

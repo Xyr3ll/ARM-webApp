@@ -23,18 +23,21 @@
 .dashboard-topbar {
   display: flex;
   align-items: center;
-  padding: 12px 32px 12px 24px;
+  padding: 8px 32px 8px 24px;
   border-bottom: 1px solid #e0e0e0;
   background: #fff;
+  min-height: 120px;
+  max-height: 120px;
 }
 .dashboard-logo {
-  height: 56px;
+  height: 100px;
   width: auto;
   margin-right: 18px;
+  object-fit: contain;
 }
 @media (min-width: 1280px) {
   .dashboard-logo {
-    height: 80px;
+    height: 100px;
   }
 }
 .dashboard-title {
@@ -323,7 +326,7 @@
   }
   
   .dashboard-logo {
-    height: 48px;
+    height: 90px;
   }
   
   .dashboard-sidebar {
@@ -355,7 +358,7 @@
   }
   
   .dashboard-logo {
-    height: 40px;
+    height: 75px;
     margin-right: 12px;
   }
   
@@ -446,7 +449,7 @@
   }
   
   .dashboard-logo {
-    height: 36px;
+    height: 65px;
     margin-right: 8px;
   }
   
