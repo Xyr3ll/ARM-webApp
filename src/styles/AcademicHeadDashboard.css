@@ -38,7 +38,7 @@
   }
 }
 .dashboard-title {
-  font-size: 2.2rem;
+  font-size: 1.3rem;
   color: #222;
   font-family: "Alata", sans-serif;
   font-weight: 400;
@@ -314,4 +314,174 @@
 .badge.danger {
   background: #fee2e2;
   color: #991b1b;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .dashboard-title {
+    font-size: 1.1rem;
+  }
+  
+  .dashboard-logo {
+    height: 48px;
+  }
+  
+  .dashboard-sidebar {
+    min-width: 200px;
+    width: 200px;
+  }
+  
+  .side-link {
+    padding: 12px 24px 12px 20px;
+    font-size: 1rem;
+  }
+  
+  .side-icon {
+    font-size: 1.2em;
+  }
+  
+  .dashboard-content {
+    padding: 24px;
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-topbar {
+    padding: 10px 16px;
+  }
+  
+  .dashboard-title {
+    font-size: 0.95rem;
+  }
+  
+  .dashboard-logo {
+    height: 40px;
+    margin-right: 12px;
+  }
+  
+  .dashboard-user {
+    gap: 6px;
+  }
+  
+  .dashboard-icon.solid {
+    font-size: 28px;
+  }
+  
+  .dashboard-username {
+    font-size: 1rem;
+  }
+  
+  .dashboard-main {
+    flex-direction: column;
+  }
+  
+  .dashboard-sidebar {
+    width: 100%;
+    min-width: 100%;
+    padding: 16px 0;
+    min-height: auto;
+    border-right: none;
+    border-bottom: 1px solid #e0e0e0;
+  }
+  
+  .sidebar-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 0 16px;
+  }
+  
+  .dashboard-sidebar li {
+    flex: 0 0 auto;
+  }
+  
+  .side-link {
+    padding: 10px 16px;
+    font-size: 0.9rem;
+    border-radius: 8px;
+    white-space: nowrap;
+  }
+  
+  .side-icon {
+    font-size: 1.1em;
+    margin-right: 4px;
+  }
+  
+  .dashboard-content {
+    padding: 16px;
+    border-radius: 0;
+  }
+  
+  .content-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  
+  .content-header h2 {
+    font-size: 1.3rem;
+  }
+  
+  .table-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .table-row > div {
+    padding: 10px 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-topbar {
+    flex-wrap: wrap;
+    justify-content: space-between;
+  }
+  
+  .dashboard-title {
+    font-size: 0.85rem;
+    order: 2;
+    flex-basis: 100%;
+    margin-top: 8px;
+    margin-right: 0;
+  }
+  
+  .dashboard-logo {
+    height: 36px;
+    margin-right: 8px;
+  }
+  
+  .dashboard-user {
+    margin-left: auto;
+  }
+  
+  .dashboard-username {
+    display: none;
+  }
+  
+  .dashboard-icon.solid {
+    font-size: 24px;
+  }
+  
+  .sidebar-list {
+    flex-direction: column;
+    gap: 4px;
+  }
+  
+  .side-link {
+    padding: 12px 16px;
+    border-radius: 8px;
+  }
+  
+  .dashboard-content {
+    padding: 12px;
+  }
+  
+  .content-header h2 {
+    font-size: 1.1rem;
+  }
+  
+  .btn {
+    padding: 6px 10px;
+    font-size: 0.85rem;
+  }
 }

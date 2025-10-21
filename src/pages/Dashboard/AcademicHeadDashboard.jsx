@@ -33,12 +33,7 @@ const AcademicHeadDashboard = () => {
           <img src={stiLogo} alt="STI Logo" className="dashboard-logo" />
           <span className="dashboard-title">Academic Resource Management</span>
           <div className="dashboard-user">
-            <span className="dashboard-bell" aria-label="Notifications">
-              <HiBell className="dashboard-icon solid" />
-            </span>
-            <span className="dashboard-user-icon" aria-label="User">
-              <HiUserCircle className="dashboard-icon solid" />
-            </span>
+            
             <span className="dashboard-username">Academic Head</span>
           </div>
         </div>
