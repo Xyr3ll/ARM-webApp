@@ -118,12 +118,14 @@ const CurriculumOverview = () => {
                       {curr.totalSubjects} subjects
                     </td>
                     <td style={{ padding: '18px 0', textAlign: 'center' }}>
-                      <button className="curriculum-badge success" onClick={() => handleView(curr)}>
-                        <HiEye /> View
-                      </button>
-                      <button className="curriculum-badge danger" onClick={() => handleArchive(curr)}>
-                        <HiArchiveBox /> Archive
-                      </button>
+                      <div style={{ display: 'flex', justifyContent: 'center', gap: 12 }}>
+                        <button className="curriculum-badge success" onClick={() => handleView(curr)}>
+                          <HiEye /> View
+                        </button>
+                        <button className="curriculum-badge danger" onClick={() => handleArchive(curr)}>
+                          <HiArchiveBox /> Archive
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
