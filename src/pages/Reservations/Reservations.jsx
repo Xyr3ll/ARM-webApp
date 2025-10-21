@@ -41,6 +41,7 @@ const Reservations = () => {
       setReservations((prev) =>
         prev.map((r) => (r.id === id ? { ...r, status: "approved" } : r))
       );
+      alert("Reservation approved successfully!");
     } catch (error) {
       console.error("Error approving reservation:", error);
       alert("Failed to approve reservation.");
@@ -57,6 +58,7 @@ const Reservations = () => {
       setReservations((prev) =>
         prev.map((r) => (r.id === id ? { ...r, status: "declined" } : r))
       );
+      alert("Reservation declined successfully!");
     } catch (error) {
       console.error("Error declining reservation:", error);
       alert("Failed to decline reservation.");

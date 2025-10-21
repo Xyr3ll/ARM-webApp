@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { HiOutlineUser, HiOutlineArchive, HiOutlinePencilAlt } from "react-icons/hi";
 import { db } from "../../firebase";
-import { collection, onSnapshot, query, where, doc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { collection, onSnapshot, query, where, doc, updateDoc, serverTimestamp, getDocs } from "firebase/firestore";
 import "../../App.css";
 import "./FacultyLoading.css";
 import NonTeachingModal from "./NonTeachingModal";
@@ -17,11 +17,26 @@ export default function FacultyLoading() {
   // Fetch faculty from Firestore (exclude archived)
   useEffect(() => {
     const q = query(collection(db, 'faculty'));
-    const unsub = onSnapshot(q, (snap) => {
-      const data = snap.docs
+    const unsub = onSnapshot(q, async (snap) => {
+      const facultyData = snap.docs
         .map(doc => ({ id: doc.id, ...doc.data() }))
-        .filter(f => f.status !== 'archived'); // Exclude archived faculty
-      setFacultyList(data);
+        .filter(f => f.status !== 'archived');
+
+      // Fetch all schedules
+      const scheduleSnap = await getDocs(collection(db, 'schedules'));
+      const allSchedules = scheduleSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+      // Attach schedules to each faculty
+      const facultyWithSchedules = facultyData.map(faculty => {
+        // Find schedules where professorAssignments includes this faculty
+        const schedulesForFaculty = allSchedules.filter(sch => {
+          if (!sch.professorAssignments) return false;
+          // Check if any assignment matches faculty.professor
+          return Object.values(sch.professorAssignments).some(name => name === faculty.professor);
+        });
+        return { ...faculty, schedules: schedulesForFaculty };
+      });
+      setFacultyList(facultyWithSchedules);
     });
     return () => unsub();
   }, []);
@@ -62,12 +77,22 @@ export default function FacultyLoading() {
 
   // Calculate automatic administrative hours from lab subjects
   const calculateAutoAdminHours = (faculty) => {
-    if (!faculty || !faculty.courses || !Array.isArray(faculty.courses)) return 0;
-    
-    return faculty.courses.reduce((sum, course) => {
-      const labHours = course.lab || 0;
-      return sum + (labHours / 2); // Half of lab hours = admin hours
-    }, 0);
+    if (!faculty || !faculty.schedules || !Array.isArray(faculty.schedules)) return 0;
+
+    let totalAdminHours = 0;
+    faculty.schedules.forEach(scheduleDoc => {
+      if (!scheduleDoc.schedule) return;
+      Object.entries(scheduleDoc.schedule).forEach(([key, value]) => {
+        if (value && value.subject && value.subject.toLowerCase().includes('lab')) {
+          // Each durationSlot is 30 minutes, so half of 2 slots = 1 slot = 30 minutes = 0.5 hour
+          const durationSlots = value.durationSlots || 1;
+          const slotMinutes = 30;
+          const totalMinutes = (durationSlots / 2) * slotMinutes;
+          totalAdminHours += totalMinutes / 60; // convert to hours
+        }
+      });
+    });
+    return totalAdminHours;
   };
 
   // Handle manual assignment changes
