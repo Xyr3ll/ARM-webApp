@@ -90,6 +90,7 @@ const FullScheduleEditor = ({
   semester,
   yearLevel,
   year,
+  isSubmitted = false,
 }) => {
   const [draggedSubject, setDraggedSubject] = useState(null);
   const [draggedCellKey, setDraggedCellKey] = useState(null);
@@ -384,6 +385,7 @@ const FullScheduleEditor = ({
   }, [subjectsFromCurriculum]);
 
   const handleDragStart = (subject, sourceCellKey = null) => {
+    if (isSubmitted) return; // Prevent dragging if submitted
     setDraggedSubject(subject);
     setDraggedCellKey(sourceCellKey);
   };
@@ -391,7 +393,10 @@ const FullScheduleEditor = ({
     setDraggedSubject(null);
     setDraggedCellKey(null);
   };
-  const handleDragOver = (e) => e.preventDefault();
+  const handleDragOver = (e) => {
+    if (isSubmitted) return; // Prevent drop zones if submitted
+    e.preventDefault();
+  };
 
   // When dragging a subject, return the peer conflict entry covering this time (room conflict across sections)
   const getPeerConflictAt = (day, timeIdx, roomToCheck) => {
@@ -440,6 +445,7 @@ const FullScheduleEditor = ({
 
   const handleDrop = (e, time, day) => {
     e.preventDefault();
+    if (isSubmitted) return; // Prevent drops if submitted
     const timeIdx = getTimeIndex(time);
     if (!draggedSubject || timeIdx === -1) return;
     const targetKey = `${day}_${time}`;
@@ -506,6 +512,7 @@ const FullScheduleEditor = ({
 
   const handleSidebarDrop = (e) => {
     e.preventDefault();
+    if (isSubmitted) return; // Prevent removing subjects if submitted
     if (!draggedCellKey) {
       setDraggedSubject(null);
       setDraggedCellKey(null);
@@ -524,6 +531,7 @@ const FullScheduleEditor = ({
   };
 
   const updateCellRoom = (cellKey, room) => {
+    if (isSubmitted) return; // Prevent room changes if submitted
     setSchedule((prev) => ({
       ...prev,
       [cellKey]: { ...(prev[cellKey] || {}), room },
@@ -561,7 +569,28 @@ const FullScheduleEditor = ({
     }
     const ok = window.confirm("Submit this schedule now?");
     if (!ok) return;
+    
+    // Save the schedule first
     await handleSave();
+    
+    // Then mark it as submitted
+    try {
+      const semKey = (() => {
+        const s = String(semester || "").toLowerCase();
+        if (s.startsWith("2")) return "2nd";
+        if (s.startsWith("sum")) return "Summer";
+        return "1st";
+      })();
+      const rootRef = doc(db, "schedules", `${String(sectionId)}_${semKey}`);
+      await setDoc(
+        rootRef,
+        { status: "submitted", updatedAt: serverTimestamp() },
+        { merge: true }
+      );
+      alert("Schedule submitted successfully!");
+    } catch (e) {
+      alert("Failed to submit: " + (e?.message || e));
+    }
   };
 
   const handleSave = async () => {
@@ -699,8 +728,8 @@ const FullScheduleEditor = ({
               return (
                 <div
                   key={name}
-                  draggable
-                  onDragStart={() => handleDragStart(name)}
+                  draggable={!isSubmitted}
+                  onDragStart={() => !isSubmitted && handleDragStart(name)}
                   onDragEnd={handleDragEnd}
                   style={{
                     background: "#ffe600",
@@ -709,11 +738,12 @@ const FullScheduleEditor = ({
                     borderRadius: 8,
                     padding: "16px 8px",
                     textAlign: "center",
-                    cursor: "grab",
+                    cursor: isSubmitted ? "not-allowed" : "grab",
                     boxShadow:
                       draggedSubject === name
                         ? "0 0 0 2px #1565c0"
                         : "0 2px 8px rgba(0,0,0,0.08)",
+                    opacity: isSubmitted ? 0.6 : 1,
                   }}
                 >
                   <div>{name}</div>
@@ -791,21 +821,38 @@ const FullScheduleEditor = ({
               {sectionName}
             </span>
           )}
-          <button
-            onClick={archiveSchedule}
-            style={{
-              background: "#43a047",
-              color: "#fff",
-              border: "none",
-              borderRadius: 6,
-              padding: "6px 18px",
-              fontWeight: 600,
-              fontSize: 16,
-              marginLeft: 8,
-            }}
-          >
-            Archive
-          </button>
+          {isSubmitted && (
+            <span
+              style={{
+                background: "#4caf50",
+                color: "#fff",
+                borderRadius: 16,
+                padding: "6px 18px",
+                fontWeight: 700,
+                fontSize: 16,
+                marginLeft: 8,
+              }}
+            >
+              SUBMITTED (READ-ONLY)
+            </span>
+          )}
+          {!isSubmitted && (
+            <button
+              onClick={archiveSchedule}
+              style={{
+                background: "#43a047",
+                color: "#fff",
+                border: "none",
+                borderRadius: 6,
+                padding: "6px 18px",
+                fontWeight: 600,
+                fontSize: 16,
+                marginLeft: 8,
+              }}
+            >
+              Archive
+            </button>
+          )}
         </div>
 
         {/* Schedule Grid - scrolls internally so footer stays visible */}
@@ -1006,9 +1053,9 @@ const FullScheduleEditor = ({
                         )}
                         {scheduled && (
                           <div
-                            draggable
+                            draggable={!isSubmitted}
                             onDragStart={() =>
-                              handleDragStart(scheduled.subject, cellKey)
+                              !isSubmitted && handleDragStart(scheduled.subject, cellKey)
                             }
                             onDragEnd={handleDragEnd}
                             style={{
@@ -1017,6 +1064,7 @@ const FullScheduleEditor = ({
                               borderRadius: 0,
                               padding: "6px 6px",
                               textAlign: "center",
+                              cursor: isSubmitted ? "default" : "grab",
                             }}
                           >
                             <div
@@ -1089,17 +1137,18 @@ const FullScheduleEditor = ({
                                     onChange={(e) =>
                                       updateCellRoom(cellKey, e.target.value)
                                     }
+                                    disabled={isSubmitted}
                                     style={{
                                       appearance: "none",
                                       WebkitAppearance: "none",
                                       MozAppearance: "none",
-                                      background: "#f5f5f5",
+                                      background: isSubmitted ? "#e0e0e0" : "#f5f5f5",
                                       border: "1px solid #c7c7c7",
                                       borderRadius: 6,
                                       padding: "2px 10px",
                                       fontWeight: 600,
                                       fontSize: 12,
-                                      cursor: "pointer",
+                                      cursor: isSubmitted ? "not-allowed" : "pointer",
                                     }}
                                   >
                                     <option value="">Select room</option>
@@ -1134,32 +1183,34 @@ const FullScheduleEditor = ({
           </table>
         </div>
 
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "flex-end",
-            marginTop: 16,
-            paddingBottom: 16,
-          }}
-        >
-          <button
-            onClick={handleSubmit}
+        {!isSubmitted && (
+          <div
             style={{
-              background: "#1565c0",
-              color: "#fff",
-              border: "none",
-              borderRadius: 6,
-              padding: "10px 32px",
-              fontWeight: 700,
-              fontSize: 18,
-              letterSpacing: 1,
-              boxShadow: "0 2px 8px rgba(21,101,192,0.12)",
-              cursor: "pointer",
+              display: "flex",
+              justifyContent: "flex-end",
+              marginTop: 16,
+              paddingBottom: 16,
             }}
           >
-            SUBMIT
-          </button>
-        </div>
+            <button
+              onClick={handleSubmit}
+              style={{
+                background: "#1565c0",
+                color: "#fff",
+                border: "none",
+                borderRadius: 6,
+                padding: "10px 32px",
+                fontWeight: 700,
+                fontSize: 18,
+                letterSpacing: 1,
+                boxShadow: "0 2px 8px rgba(21,101,192,0.12)",
+                cursor: "pointer",
+              }}
+            >
+              SUBMIT
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

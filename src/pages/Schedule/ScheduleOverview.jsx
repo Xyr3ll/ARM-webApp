@@ -503,7 +503,6 @@ const ScheduleOverview = () => {
                 >
                   <option value="1st">1st Semester</option>
                   <option value="2nd">2nd Semester</option>
-                  <option value="Summer">Summer</option>
                 </select>
               </div>
               <div style={{ textAlign: 'center', color: '#888', marginTop: 60, fontSize: 18 }}>
