@@ -36,6 +36,40 @@
   margin-bottom: 40px;
 }
 
+.login-logo {
+  display: block;
+  max-width: 300px;
+  width: 90%;
+  height: auto;
+  margin: 0 auto 20px auto;
+  background: none;
+  border-radius: 12px;
+  box-shadow: none;
+}
+
+@media (max-width: 768px) {
+  .login-logo {
+    max-width: 220px;
+    width: 95%;
+    margin-bottom: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .login-logo {
+    max-width: 160px;
+    width: 100%;
+    margin-bottom: 10px;
+  }
+}
+
+.login-header .tags {
+  background: none;
+  padding: 0;
+  min-height: unset;
+  min-width: unset;
+}
+
 .tags {
   display: flex;
   flex-direction: column;
