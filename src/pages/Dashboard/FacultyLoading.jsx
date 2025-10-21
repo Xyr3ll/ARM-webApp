@@ -13,6 +13,7 @@ export default function FacultyLoading() {
   const [showNonTeachingModal, setShowNonTeachingModal] = useState(false);
   const [selectedFaculty, setSelectedFaculty] = useState(null);
   const [manualAssignments, setManualAssignments] = useState([]);
+  const [modalReadOnly, setModalReadOnly] = useState(false);
 
   // Fetch faculty from Firestore (exclude archived)
   useEffect(() => {
@@ -45,6 +46,8 @@ export default function FacultyLoading() {
     setSelectedFaculty(faculty);
     // Load existing non-teaching assignments if any
     setManualAssignments(faculty.nonTeachingHours || []);
+    // If there are already saved non-teaching hours, open modal in read-only mode
+    setModalReadOnly(Boolean(faculty.nonTeachingHours && faculty.nonTeachingHours.length > 0));
     setShowNonTeachingModal(true);
   };
 
@@ -235,9 +238,11 @@ export default function FacultyLoading() {
           onClose={() => {
             setShowNonTeachingModal(false);
             setManualAssignments([]);
+            setModalReadOnly(false);
           }}
           onSave={handleSaveNonTeaching}
           calculateAutoAdminHours={calculateAutoAdminHours}
+          readOnly={modalReadOnly}
         />
       )}
     </div>

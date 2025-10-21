@@ -10,6 +10,7 @@ export default function FacultyScheduling() {
   const [program, setProgram] = useState('BSIT');
   const [semester, setSemester] = useState('1st Semester');
   const [sectionsByYear, setSectionsByYear] = useState({});
+  const [lockedSections, setLockedSections] = useState({});
   
   const yearLevels = useMemo(() => ['1st Year', '2nd Year', '3rd Year', '4th Year'], []);
 
@@ -82,6 +83,33 @@ export default function FacultyScheduling() {
     return () => unsub();
   }, [program, year, semester]);
 
+  // Fetch schedules to determine locked (submitted) sections
+  useEffect(() => {
+    let mounted = true;
+    const fetchSchedules = async () => {
+      try {
+        const { getDocs, collection: col } = await import('firebase/firestore');
+        const schedulesSnap = await getDocs(collection(db, 'schedules'));
+        const locked = {};
+        schedulesSnap.forEach((sdoc) => {
+          const data = sdoc.data();
+          if (!data) return;
+          // match by program/semester/year/yearLevel when available
+          if (data.program === program && data.semester === semester && String(data.year || '') === String(year)) {
+            const sectionName = data.sectionName || '';
+            const profAssign = data.professorAssignments || {};
+            if (sectionName && Object.keys(profAssign).length > 0) locked[sectionName] = true;
+          }
+        });
+        if (mounted) setLockedSections(locked);
+      } catch (err) {
+        console.error('Failed to fetch schedules for locked sections', err);
+      }
+    };
+    fetchSchedules();
+    return () => { mounted = false; };
+  }, [program, semester, year]);
+
   const handleEdit = (sectionId, sectionName, yearLevel) => {
     navigate('professor-assignment', {
       state: {
@@ -96,9 +124,18 @@ export default function FacultyScheduling() {
   };
 
   const handleView = (sectionId, sectionName, yearLevel) => {
-    // Navigate to view faculty schedule
-    console.log('View faculty schedule for:', sectionName);
-    // TODO: Navigate to viewer
+    // Navigate to professor-assignment route in read-only/view mode
+    navigate('professor-assignment', {
+      state: {
+        sectionId,
+        sectionName,
+        yearLevel,
+        program,
+        year,
+        semester,
+        viewOnly: true
+      }
+    });
   };
 
   return (
@@ -255,24 +292,25 @@ export default function FacultyScheduling() {
                             <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
                               <button
                                 onClick={() => handleEdit(section.id, section.name, section.yearLevel)}
+                                disabled={Boolean(lockedSections[section.name])}
                                 style={{
-                                  background: '#3b82f6',
+                                  background: lockedSections[section.name] ? '#94a3b8' : '#3b82f6',
                                   color: '#fff',
                                   border: 'none',
                                   borderRadius: 18,
                                   padding: '8px 20px',
                                   fontWeight: 700,
                                   fontSize: 14,
-                                  cursor: 'pointer',
+                                  cursor: lockedSections[section.name] ? 'not-allowed' : 'pointer',
                                   display: 'flex',
                                   alignItems: 'center',
                                   gap: 6,
                                   transition: 'background 0.2s'
                                 }}
-                                onMouseOver={(e) => e.currentTarget.style.background = '#2563eb'}
-                                onMouseOut={(e) => e.currentTarget.style.background = '#3b82f6'}
+                                onMouseOver={(e) => { if (!lockedSections[section.name]) e.currentTarget.style.background = '#2563eb'; }}
+                                onMouseOut={(e) => { if (!lockedSections[section.name]) e.currentTarget.style.background = '#3b82f6'; }}
                               >
-                                Assign
+                                {lockedSections[section.name] ? 'Locked' : 'Assign'}
                               </button>
                               <button
                                 onClick={() => handleView(section.id, section.name, section.yearLevel)}

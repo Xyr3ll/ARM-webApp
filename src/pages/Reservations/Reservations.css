@@ -61,6 +61,25 @@
   font-family: 'Alata', sans-serif;
 }
 
+.status-label {
+  display: inline-block;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: #fff;
+}
+.status-label.approved {
+  background: #16a34a;
+}
+.status-label.declined {
+  background: #dc2626;
+}
+.status-label.pending {
+  background: #f59e0b;
+  color: #111;
+}
+
 .reservations-table thead {
   background: #d9d9d9;
 }
@@ -100,6 +119,42 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.notes-cell {
+  cursor: pointer;
+}
+
+/* Note modal */
+.note-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.note-modal {
+  background: #fff;
+  max-width: 720px;
+  width: 90%;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+}
+.note-modal .close-btn {
+  background: transparent;
+  border: none;
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  color: #0a2f5c;
+}
+.note-modal .note-content {
+  margin-top: 12px;
+  white-space: pre-wrap;
+  color: #222;
 }
 
 .status-cell {
@@ -182,4 +237,8 @@
   .decline-btn {
     width: 100%;
   }
+}
+
+.reservations-table + h3 {
+  margin-top: 18px;
 }

@@ -240,6 +240,30 @@ export default function AddFaculty() {
         return;
       }
 
+      // Check for duplicate professor in faculty collection (case-insensitive).
+      // Ignore archived entries and allow updating the same document when editing.
+      const facultySnap = await getDocs(collection(db, 'faculty'));
+      const searchLower = professor.trim().toLowerCase();
+      let duplicate = false;
+      facultySnap.forEach(fDoc => {
+        const fData = fDoc.data();
+        const fName = String(fData.professor || '').trim().toLowerCase();
+        // ignore archived entries
+        const isArchived = fData.status === 'archived';
+        if (!isArchived && fName && fName === searchLower) {
+          // if editing, allow same document
+          if (editFaculty && editFaculty.id && fDoc.id === editFaculty.id) {
+            return;
+          }
+          duplicate = true;
+        }
+      });
+      if (duplicate) {
+        setError('A faculty with that name already exists.');
+        setLoading(false);
+        return;
+      }
+
       const totalUnits = calculateTotalUnits();
       const payload = {
         professor: professor.trim(),

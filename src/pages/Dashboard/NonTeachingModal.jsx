@@ -10,6 +10,8 @@ export default function NonTeachingModal({
   onClose,
   onSave,
   calculateAutoAdminHours
+  ,
+  readOnly = false
 }) {
   const [classBlocks, setClassBlocks] = useState([]);
 
@@ -129,17 +131,20 @@ export default function NonTeachingModal({
 
   // Handlers for manual assignment changes
   const handleManualChange = (idx, field, value) => {
+    if (readOnly) return;
     setManualAssignments(assignments =>
       assignments.map((a, i) => i === idx ? { ...a, [field]: value } : a)
     );
   };
   const handleAddManual = () => {
+    if (readOnly) return;
     setManualAssignments(assignments => [
       ...assignments,
       { day: '', time: '', type: 'Consultation', hours: 1 }
     ]);
   };
   const handleRemoveManual = (idx) => {
+    if (readOnly) return;
     setManualAssignments(assignments => assignments.filter((_, i) => i !== idx));
   };
 
@@ -286,7 +291,7 @@ export default function NonTeachingModal({
                   manualAssignments.map((row, idx) => (
                     <tr key={idx} style={{ borderBottom: '1px solid #e2e8f0', background: row.conflict ? '#fee2e2' : undefined }}>
                       <td style={{ padding: '10px 8px' }}>
-                        <select
+                          <select
                           value={row.day}
                           onChange={e => handleManualChange(idx, 'day', e.target.value)}
                           style={{
@@ -298,6 +303,7 @@ export default function NonTeachingModal({
                             cursor: 'pointer',
                             background: row.conflict ? '#fecaca' : undefined
                           }}
+                          disabled={readOnly}
                         >
                           <option value="">Select day</option>
                           {days.map(day => <option key={day} value={day}>{day}</option>)}
@@ -316,6 +322,7 @@ export default function NonTeachingModal({
                             cursor: 'pointer',
                             background: row.conflict ? '#fecaca' : undefined
                           }}
+                          disabled={readOnly}
                         >
                           <option value="">Select time</option>
                           {timeSlots.map(time => <option key={time} value={time}>{time}</option>)}
@@ -335,6 +342,7 @@ export default function NonTeachingModal({
                             background: row.type === 'Consultation' ? '#dbeafe' : '#fce7f3',
                             fontWeight: 600
                           }}
+                          disabled={readOnly}
                         >
                           <option value="Consultation">Consultation</option>
                           <option value="Administrative">Administrative</option>
@@ -357,25 +365,28 @@ export default function NonTeachingModal({
                             textAlign: 'center',
                             background: row.conflict ? '#fecaca' : undefined
                           }}
+                          disabled={readOnly}
                         />
                       </td>
                       <td style={{ padding: '10px 8px', textAlign: 'center' }}>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveManual(idx)}
-                          style={{
-                            background: '#ef4444',
-                            color: '#fff',
-                            border: 'none',
-                            borderRadius: 6,
-                            padding: '6px 12px',
-                            cursor: 'pointer',
-                            fontSize: 13,
-                            fontWeight: 600
-                          }}
-                        >
-                          🗑 Remove
-                        </button>
+                        {!readOnly && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveManual(idx)}
+                            style={{
+                              background: '#ef4444',
+                              color: '#fff',
+                              border: 'none',
+                              borderRadius: 6,
+                              padding: '6px 12px',
+                              cursor: 'pointer',
+                              fontSize: 13,
+                              fontWeight: 600
+                            }}
+                          >
+                            🗑 Remove
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))
@@ -383,25 +394,27 @@ export default function NonTeachingModal({
               </tbody>
             </table>
           </div>
-          <button
-            type="button"
-            onClick={handleAddManual}
-            style={{
-              background: '#10b981',
-              color: '#fff',
-              border: 'none',
-              borderRadius: 6,
-              padding: '10px 20px',
-              fontWeight: 600,
-              fontSize: 14,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6
-            }}
-          >
-            <span style={{ fontSize: 16 }}>+</span> Add Assignment
-          </button>
+          {!readOnly && (
+            <button
+              type="button"
+              onClick={handleAddManual}
+              style={{
+                background: '#10b981',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 6,
+                padding: '10px 20px',
+                fontWeight: 600,
+                fontSize: 14,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6
+              }}
+            >
+              <span style={{ fontSize: 16 }}>+</span> Add Assignment
+            </button>
+          )}
         </div>
         {/* Action Buttons */}
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 24 }}>
@@ -420,23 +433,30 @@ export default function NonTeachingModal({
           >
             Cancel
           </button>
-          <button
-            onClick={onSave}
-            style={{
-              background: hasAnyConflict || remainingConsultation > 0 || remainingAdmin > 0 ? '#94a3b8' : '#1565c0',
-              color: '#fff',
-              border: 'none',
-              padding: '12px 28px',
-              borderRadius: 6,
-              cursor: hasAnyConflict || remainingConsultation > 0 || remainingAdmin > 0 ? 'not-allowed' : 'pointer',
-              fontWeight: 600,
-              fontSize: 14
-            }}
-            disabled={hasAnyConflict || remainingConsultation > 0 || remainingAdmin > 0}
-          >
-            💾 Save Non-Teaching Hours
-          </button>
+          {!readOnly && (
+            <button
+              onClick={onSave}
+              style={{
+                background: hasAnyConflict || remainingConsultation > 0 || remainingAdmin > 0 ? '#94a3b8' : '#1565c0',
+                color: '#fff',
+                border: 'none',
+                padding: '12px 28px',
+                borderRadius: 6,
+                cursor: hasAnyConflict || remainingConsultation > 0 || remainingAdmin > 0 ? 'not-allowed' : 'pointer',
+                fontWeight: 600,
+                fontSize: 14
+              }}
+              disabled={hasAnyConflict || remainingConsultation > 0 || remainingAdmin > 0}
+            >
+              💾 Save Non-Teaching Hours
+            </button>
+          )}
         </div>
+        {readOnly && (
+          <div style={{ marginTop: 12, color: '#475569', fontSize: 13 }}>
+            Note: These non-teaching hours are saved and cannot be edited. Contact admin to change.
+          </div>
+        )}
       </div>
     </div>
   );
