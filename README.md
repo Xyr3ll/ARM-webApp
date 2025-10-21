@@ -173,15 +173,6 @@ The app uses the following Firestore collections:
 - `schedules` - Section schedules and room assignments
 - `reservations` - Room reservation requests
 
-## Firebase Collections
-
-The app uses the following Firestore collections:
-- `users` - User accounts and authentication
-- `faculty` - Faculty members and their courses
-- `curriculum` - Course curriculum for each program
-- `schedules` - Section schedules and room assignments
-- `reservations` - Room reservation requests
-
 ## Development Guidelines
 
 ### Room Types
