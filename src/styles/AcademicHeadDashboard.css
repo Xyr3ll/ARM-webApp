@@ -47,6 +47,13 @@
   font-weight: 400;
   margin-right: auto;
   letter-spacing: 0.5px;
+  display: block;
+  white-space: normal;
+  word-break: break-word;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  flex-shrink: 1;
 }
 .dashboard-user {
   display: flex;
@@ -459,50 +466,48 @@
     flex-wrap: wrap;
     justify-content: space-between;
   }
-  
   .dashboard-title {
     font-size: 0.85rem;
     order: 2;
     flex-basis: 100%;
     margin-top: 8px;
     margin-right: 0;
+    display: block;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    white-space: normal;
+    word-break: break-word;
   }
-  
   .dashboard-logo {
     height: 65px;
     margin-right: 8px;
   }
-  
   .dashboard-user {
     margin-left: auto;
+    width: 100%;
+    justify-content: flex-end;
   }
-  
   .dashboard-username {
     display: none;
   }
-  
   .dashboard-icon.solid {
     font-size: 24px;
   }
-  
   .sidebar-list {
     flex-direction: column;
     gap: 4px;
   }
-  
   .side-link {
     padding: 12px 16px;
     border-radius: 8px;
   }
-  
   .dashboard-content {
     padding: 12px;
   }
-  
   .content-header h2 {
     font-size: 1.1rem;
   }
-  
   .btn {
     padding: 6px 10px;
     font-size: 0.85rem;
