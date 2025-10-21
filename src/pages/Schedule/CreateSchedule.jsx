@@ -463,11 +463,7 @@ const CreateSchedule = () => {
                         <button
                           className="schedule-action-btn delete"
                           onClick={() => handleDelete(section.id)}
-                          disabled={isSubmitted}
-                          style={{
-                            opacity: isSubmitted ? 0.5 : 1,
-                            cursor: isSubmitted ? "not-allowed" : "pointer",
-                          }}
+                          title="Delete section"
                         >
                           <HiTrash /> Delete
                         </button>

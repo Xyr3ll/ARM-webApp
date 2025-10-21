@@ -10,7 +10,7 @@ export default function FacultyScheduling() {
   const [program, setProgram] = useState('BSIT');
   const [semester, setSemester] = useState('1st Semester');
   const [sectionsByYear, setSectionsByYear] = useState({});
-  const [lockedSections, setLockedSections] = useState({});
+  const [assignedSections, setAssignedSections] = useState({});
   
   const yearLevels = useMemo(() => ['1st Year', '2nd Year', '3rd Year', '4th Year'], []);
 
@@ -83,32 +83,47 @@ export default function FacultyScheduling() {
     return () => unsub();
   }, [program, year, semester]);
 
-  // Fetch schedules to determine locked (submitted) sections
+  // Subscribe to schedules for the selected program/year/semester to determine
+  // which sections already have professor assignments. Disabled Assign button for those.
   useEffect(() => {
-    let mounted = true;
-    const fetchSchedules = async () => {
-      try {
-        const { getDocs, collection: col } = await import('firebase/firestore');
-        const schedulesSnap = await getDocs(collection(db, 'schedules'));
-        const locked = {};
-        schedulesSnap.forEach((sdoc) => {
-          const data = sdoc.data();
-          if (!data) return;
-          // match by program/semester/year/yearLevel when available
-          if (data.program === program && data.semester === semester && String(data.year || '') === String(year)) {
-            const sectionName = data.sectionName || '';
-            const profAssign = data.professorAssignments || {};
-            if (sectionName && Object.keys(profAssign).length > 0) locked[sectionName] = true;
-          }
-        });
-        if (mounted) setLockedSections(locked);
-      } catch (err) {
-        console.error('Failed to fetch schedules for locked sections', err);
-      }
+    const schedulesCol = collection(db, 'schedules');
+    // Normalize semester to match how it's stored in schedules documents
+    const normalizeSemester = (s) => {
+      if (!s) return s;
+      const lower = String(s).toLowerCase();
+      if (lower.includes('1st')) return '1st';
+      if (lower.includes('2nd')) return '2nd';
+      if (lower.includes('summer')) return 'Summer';
+      return s;
     };
-    fetchSchedules();
-    return () => { mounted = false; };
-  }, [program, semester, year]);
+
+    const scheduleSem = normalizeSemester(semester);
+
+    const q = query(
+      schedulesCol,
+      where('program', '==', program),
+      where('year', '==', year),
+      where('semester', '==', scheduleSem)
+    );
+
+    const unsub = onSnapshot(q, (snap) => {
+      const assigned = {};
+      snap.forEach((d) => {
+        const data = d.data();
+        const sectionName = data.sectionName || d.id;
+        // Skip archived schedules
+        if (String(data?.status).toLowerCase() === 'archived') return;
+
+        // If professorAssignments contains any non-empty value, consider section assigned
+        const profAssign = data.professorAssignments || {};
+        const hasAssigned = Object.values(profAssign).some(v => v && String(v).trim() !== '');
+        if (hasAssigned) assigned[sectionName] = true;
+      });
+      setAssignedSections(assigned);
+    });
+
+    return () => unsub();
+  }, [program, year, semester]);
 
   const handleEdit = (sectionId, sectionName, yearLevel) => {
     navigate('professor-assignment', {
@@ -292,25 +307,30 @@ export default function FacultyScheduling() {
                             <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
                               <button
                                 onClick={() => handleEdit(section.id, section.name, section.yearLevel)}
-                                disabled={Boolean(lockedSections[section.name])}
+                                disabled={Boolean(assignedSections[section.name])}
                                 style={{
-                                  background: lockedSections[section.name] ? '#94a3b8' : '#3b82f6',
+                                  background: assignedSections[section.name] ? '#9ca3af' : '#3b82f6',
                                   color: '#fff',
                                   border: 'none',
                                   borderRadius: 18,
                                   padding: '8px 20px',
                                   fontWeight: 700,
                                   fontSize: 14,
-                                  cursor: lockedSections[section.name] ? 'not-allowed' : 'pointer',
+                                  cursor: assignedSections[section.name] ? 'not-allowed' : 'pointer',
                                   display: 'flex',
                                   alignItems: 'center',
                                   gap: 6,
-                                  transition: 'background 0.2s'
+                                  transition: 'background 0.2s',
+                                  opacity: assignedSections[section.name] ? 0.8 : 1
                                 }}
-                                onMouseOver={(e) => { if (!lockedSections[section.name]) e.currentTarget.style.background = '#2563eb'; }}
-                                onMouseOut={(e) => { if (!lockedSections[section.name]) e.currentTarget.style.background = '#3b82f6'; }}
+                                onMouseOver={(e) => {
+                                  if (!assignedSections[section.name]) e.currentTarget.style.background = '#2563eb';
+                                }}
+                                onMouseOut={(e) => {
+                                  if (!assignedSections[section.name]) e.currentTarget.style.background = '#3b82f6';
+                                }}
                               >
-                                {lockedSections[section.name] ? 'Locked' : 'Assign'}
+                                {assignedSections[section.name] ? 'Assigned' : 'Assign'}
                               </button>
                               <button
                                 onClick={() => handleView(section.id, section.name, section.yearLevel)}

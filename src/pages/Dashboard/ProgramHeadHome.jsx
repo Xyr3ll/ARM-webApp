@@ -22,15 +22,14 @@ const ProgramHeadHome = () => {
         const schedule = data.schedule || {};
         const professorAssignments = data.professorAssignments || {};
         
-        // Count if schedule has subjects but not all have professors assigned
-        const subjects = Object.keys(schedule);
-        const hasSubjects = subjects.length > 0;
-        const allAssigned = subjects.every(key => {
-          const subjectCode = schedule[key]?.subject;
-          return subjectCode && professorAssignments[subjectCode];
+        // Count this section if it has at least one scheduled slot with no assigned professor
+        const slotKeys = Object.keys(schedule).filter(k => schedule[k] && schedule[k].subject);
+        const hasUnassignedSlot = slotKeys.some((key) => {
+          const val = professorAssignments[key];
+          return !(val && String(val).trim() !== '');
         });
-        
-        if (hasSubjects && !allAssigned) {
+
+        if (slotKeys.length > 0 && hasUnassignedSlot) {
           needsAssignment++;
         }
       });
