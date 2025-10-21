@@ -1,0 +1,248 @@
+/* Curriculum.css - Scoped styles for Curriculum section */
+
+/* Content header for curriculum pages */
+.curriculum-content-wrap {
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+.curriculum-content-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+} 
+.curriculum-content-header h2 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #0d1b2a;
+  margin: 0;
+}
+
+/* Header row with back button */
+.curriculum-header-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.curriculum-back-btn {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 20px;
+  color: #0a2f5c;
+  padding: 4px;
+}
+.curriculum-back-btn:hover {
+  color: #084080;
+}
+
+/* Buttons */
+.curriculum-btn-group {
+  display: flex;
+  gap: 10px;
+}
+.curriculum-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 16px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+.curriculum-btn.primary {
+  background: #0a62c9;
+  color: #fff;
+}
+.curriculum-btn.primary:hover {
+  background: #084ea2;
+}
+.curriculum-btn.success {
+  background: #16a34a;
+  color: #fff;
+}
+.curriculum-btn.success:hover {
+  background: #15803d;
+}
+
+/* Icon buttons for row actions */
+.curriculum-icon-btn {
+  border: 1px solid #d1d5db;
+  background: #fff;
+  border-radius: 6px;
+  padding: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.curriculum-icon-btn:hover {
+  background: #f3f4f6;
+}
+.curriculum-icon-btn.add {
+  color: #16a34a;
+  border-color: #ccebd7;
+}
+.curriculum-icon-btn.add:hover {
+  background: #f0fdf4;
+}
+.curriculum-icon-btn.danger {
+  color: #dc2626;
+  border-color: #fecaca;
+}
+.curriculum-icon-btn.danger:hover {
+  background: #fef2f2;
+}
+
+/* Card and Table */
+.curriculum-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+.curriculum-table {
+  width: 100%;
+}
+.curriculum-table-row {
+  display: grid;
+  grid-template-columns: 140px 180px 1fr 220px;
+  gap: 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+.curriculum-table-row:last-child {
+  border-bottom: none;
+}
+.curriculum-table-head {
+  background: #d9dbdf;
+  color: #0a2f5c;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  font-size: 0.85rem;
+}
+.curriculum-table-row > div {
+  padding: 16px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+.curriculum-table .actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+/* Badges */
+.curriculum-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.curriculum-badge.success {
+  background: #d1fae5;
+  color: #065f46;
+}
+.curriculum-badge.success:hover {
+  background: #a7f3d0;
+}
+.curriculum-badge.danger {
+  background: #fee2e2;
+  color: #991b1b;
+}
+.curriculum-badge.danger:hover {
+  background: #fecaca;
+}
+
+/* Form table for Add Curriculum */
+.curriculum-form-table {
+  margin-top: 8px;
+  overflow-x: auto;
+}
+.curriculum-form-header {
+  display: grid;
+  grid-template-columns: 110px 110px 130px 110px 150px 150px 1fr 70px 70px 90px 130px 150px;
+  background: #d9dbdf;
+  color: #0a2f5c;
+  font-weight: 700;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  align-items: center;
+  gap: 12px;
+}
+.curriculum-form-header > div {
+  padding: 14px 12px;
+  text-align: center;
+  justify-content: center;
+}
+
+.curriculum-form-row {
+  display: grid;
+  grid-template-columns: 110px 110px 130px 110px 150px 150px 1fr 70px 70px 90px 130px 150px;
+  align-items: center;
+  border-bottom: 1px solid #e5e7eb;
+  gap: 12px;
+}
+.curriculum-form-row:nth-child(even) {
+  background: #f9fafb;
+}
+.curriculum-form-row > * {
+  padding: 12px 8px;
+  text-align: center;
+  justify-content: center;
+}
+
+.curriculum-action-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+/* Form inputs */
+.curriculum-input {
+  width: 100%;
+  height: 38px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 8px 12px;
+  background: #fff;
+  font-size: 0.9rem;
+}
+.curriculum-input:focus {
+  outline: none;
+  border-color: #0a62c9;
+  box-shadow: 0 0 0 2px rgba(10, 98, 201, 0.1);
+}
+
+.curriculum-select {
+  width: 100%;
+  height: 38px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 8px 12px;
+  background: #fff;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.curriculum-select:focus {
+  outline: none;
+  border-color: #0a62c9;
+  box-shadow: 0 0 0 2px rgba(10, 98, 201, 0.1);
+}
+
+.curriculum-checkbox {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+}

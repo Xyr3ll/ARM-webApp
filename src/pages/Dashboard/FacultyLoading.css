@@ -1,0 +1,136 @@
+.faculty-loading-container {
+  background: #fff;
+  border-radius: 8px;
+  padding: 2rem;
+  margin: 2rem 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+}
+.add-faculty-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: 1.25rem;
+}
+.faculty-loading-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+.faculty-loading-header h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+.add-faculty-btn {
+  background: #1565c0;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 0.5rem 1.2rem;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.add-faculty-btn:hover {
+  background: #0d47a1;
+}
+.faculty-loading-table-wrapper {
+  overflow-x: auto;
+}
+.faculty-loading-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 1rem;
+}
+.faculty-loading-table th {
+  background: #e3eafc;
+  color: #1565c0;
+  font-weight: 700;
+  padding: 0.75rem;
+  text-align: left;
+}
+.faculty-loading-table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid #f0f0f0;
+}
+.assign-btn {
+  background: #43a047;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 0.3rem 1rem;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.assign-btn:hover {
+  background: #388e3c;
+}
+.edit-btn {
+  background: #e3eafc;
+  color: #1565c0;
+  border: none;
+  border-radius: 4px;
+  padding: 0.3rem 0.8rem;
+  margin-right: 0.5rem;
+  font-size: 0.95rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.edit-btn:hover {
+  background: #c5cae9;
+}
+.archive-btn {
+  background: #ffcdd2;
+  color: #c62828;
+  border: none;
+  border-radius: 4px;
+  padding: 0.3rem 0.8rem;
+  font-size: 0.95rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.archive-btn:hover {
+  background: #e57373;
+}
+
+/* Add Faculty page helpers */
+.add-faculty-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.2rem;
+  margin-bottom: 1.2rem;
+}
+.field label {
+  display: block;
+  color: #334155;
+  font-size: 0.95rem;
+  margin-bottom: 0.4rem;
+}
+.field input,
+.field select {
+  width: 100%;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+}
+.course-table-wrap {
+  margin: 1.2rem 0;
+}
+.btn {
+  background: #eee;
+  color: #222;
+  border: none;
+  border-radius: 6px;
+  padding: 0.5rem 0.9rem;
+  font-weight: 600;
+  margin-right: 0.4rem;
+  cursor: pointer;
+}
+.btn.primary { background: #1565c0; color: #fff; }
+.btn.green { background: #43a047; color: #fff; }
+.btn.danger { background: #e53935; color: #fff; }
+.form-actions { display: flex; justify-content: flex-end; gap: 0.6rem; }
