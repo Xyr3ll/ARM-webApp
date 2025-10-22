@@ -240,6 +240,22 @@ const FullScheduleEditor = ({
     return name.includes("P.E") || name.includes("PE") || name.includes("PHYSICAL EDUCATION");
   };
 
+  // Helper to check if subject is PATHFIT / PATHFIT 1-4 specifically
+  const isPathfitSubject = (subjectName) => {
+    const name = String(subjectName || "").toUpperCase();
+    // Match exact PATHFIT keywords or patterns like 'PATHFIT 1', 'PATHFIT 2', etc.
+    return /PATHFIT\s*(?:[1-4])?/.test(name) || name.includes("PATHFIT");
+  };
+
+  // Unified room options resolver: ensure P.E. and PATHFIT subjects only get peRooms (COURT, PENTHOUSE)
+  const getRoomOptionsForSubject = (subjectName) => {
+    const meta = getCounts(subjectName);
+    // PATHFIT and P.E. must only use peRooms
+    if (isPathfitSubject(subjectName) || isPESubject(subjectName)) return peRooms;
+    const isLab = meta.kind === "LAB" || (meta.compLab && meta.lab > 0);
+    return isLab ? labRooms : lecRooms;
+  };
+
   // Load other sections' schedules for the same program/semester/yearLevel to prevent same-subject time overlaps across sections
   useEffect(() => {
     if (!program || !semester || !yearLevel) return;
@@ -545,11 +561,7 @@ const FullScheduleEditor = ({
     for (const [key, v] of Object.entries(schedule || {})) {
       if (!v || !v.subject) continue;
       const [day, startTime] = key.split("_");
-      const meta = getCounts(v.subject);
-      const isPE = isPESubject(v.subject);
-      const isLab = meta.kind === "LAB" || (meta.compLab && meta.lab > 0);
-      // For PE subjects, allow lab/lecture rooms plus PE-specific rooms
-      const options = isPE ? [...roomOptions, ...peRooms] : (isLab ? labRooms : lecRooms);
+      const options = getRoomOptionsForSubject(v.subject);
       const valid = v.room && options.includes(v.room);
       if (!valid) issues.push({ day, startTime, subject: v.subject });
     }
@@ -1154,14 +1166,10 @@ const FullScheduleEditor = ({
                                 const isLab =
                                   meta.kind === "LAB" ||
                                   (meta.compLab && meta.lab > 0);
-                                // For P.E. subjects, combine all rooms + peRooms; otherwise use lab/lec rooms
-                                const options = isPE 
-                                  ? [...roomOptions, ...peRooms] 
-                                  : (isLab ? labRooms : lecRooms);
+                                // Resolve options using unified helper (PATHFIT -> peRooms only)
+                                const options = getRoomOptionsForSubject(scheduled.subject);
                                 // If current room isn't allowed for type, show as empty
-                                const value = options.includes(scheduled.room)
-                                  ? scheduled.room
-                                  : "";
+                                const value = options.includes(scheduled.room) ? scheduled.room : "";
                                 
                                 // Get occupied rooms for this time slot
                                 const startIdx = getTimeIndex(time);
