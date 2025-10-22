@@ -27,13 +27,37 @@ export default function FacultyLoading() {
       const scheduleSnap = await getDocs(collection(db, 'schedules'));
       const allSchedules = scheduleSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-      // Attach schedules to each faculty
+      // Attach schedules to each faculty only if ALL scheduled subject slots assigned to a professor belong to that faculty
       const facultyWithSchedules = facultyData.map(faculty => {
-        // Find schedules where professorAssignments includes this faculty
         const schedulesForFaculty = allSchedules.filter(sch => {
-          if (!sch.professorAssignments) return false;
-          // Check if any assignment matches faculty.professor
-          return Object.values(sch.professorAssignments).some(name => name === faculty.professor);
+          const sched = sch.schedule || {};
+          // All keys that have a subject (these must all be assigned for us to attach the schedule)
+          const subjectKeys = Object.keys(sched).filter(k => {
+            const val = sched[k];
+            return val && val.subject;
+          });
+          if (subjectKeys.length === 0) return false; // nothing to attach
+
+          // Keys that have a subject AND have a professor assigned (via professorAssignments or inline)
+          const assignedKeys = subjectKeys.filter(k => {
+            const val = sched[k];
+            const profFromAssign = (sch.professorAssignments && sch.professorAssignments[k]) || '';
+            const profInline = val.professor || val.instructor || val.professorName || val.assignedProfessor || val.professorAssigned || '';
+            const prof = String(profFromAssign || profInline || '').trim();
+            return prof !== '';
+          });
+
+          // Only attach the schedule if every subject slot has an assigned professor
+          if (assignedKeys.length !== subjectKeys.length) return false;
+
+          // And ensure every assigned professor matches this faculty
+          return assignedKeys.every(k => {
+            const val = sched[k];
+            const profFromAssign = (sch.professorAssignments && sch.professorAssignments[k]) || '';
+            const profInline = val.professor || val.instructor || val.professorName || val.assignedProfessor || val.professorAssigned || '';
+            const prof = String(profFromAssign || profInline || '').trim();
+            return prof === faculty.professor;
+          });
         });
         return { ...faculty, schedules: schedulesForFaculty };
       });

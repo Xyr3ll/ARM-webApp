@@ -484,7 +484,9 @@ export default function Substitution() {
                       <td style={{ padding: '10px 0', textAlign: 'center', fontWeight: 600 }}>{subj.courseName}</td>
                       <td style={{ padding: '10px 0', textAlign: 'center', fontWeight: 600 }}>{subj.section}</td>
                       <td style={{ padding: '10px 0', textAlign: 'center', fontWeight: 600 }}>{subj.day}</td>
-                      <td style={{ padding: '10px 0', textAlign: 'center', fontWeight: 600 }}>{subj.startTime}</td>
+                      <td style={{ padding: '10px 0', textAlign: 'center', fontWeight: 600 }}>
+                        {subj.startTime}{subj.endTime ? ` - ${subj.endTime}` : ''}
+                      </td>
                       <td style={{ padding: '10px 0', textAlign: 'center', fontWeight: 600 }}>
                         <span style={{ color: '#22c55e', fontWeight: 700 }}>{subj.substituteTeacher}</span>
                       </td>

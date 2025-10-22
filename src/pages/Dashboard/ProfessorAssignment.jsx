@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { db } from '../../firebase';
-import { collection, onSnapshot, query, where, doc, updateDoc } from 'firebase/firestore';
+import { collection, onSnapshot, query, where, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import './FacultyLoading.css';
 
 export default function ProfessorAssignment() {
@@ -16,6 +16,8 @@ export default function ProfessorAssignment() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [assignedProfessors, setAssignedProfessors] = useState({});
+  const [scheduleDocId, setScheduleDocId] = useState(null);
+  const [isDirty, setIsDirty] = useState(false);
   const [allSchedules, setAllSchedules] = useState([]); // Store all schedules for conflict checking
 
   const timeSlots = useMemo(() => [
@@ -68,6 +70,7 @@ export default function ProfessorAssignment() {
         const scheduleData = data.schedule || {};
         setSchedule(scheduleData);
         setAssignedProfessors(data.professorAssignments || {});
+        setScheduleDocId(doc.id);
         console.log('Schedule keys:', Object.keys(scheduleData));
       } else {
         console.log('No schedule found for this section');
@@ -151,60 +154,35 @@ export default function ProfessorAssignment() {
       alert('This time slot already has an assigned professor and cannot be changed.');
       return;
     }
-
+    // Just update locally and mark dirty — do not auto-save
     const newAssignments = { ...assignedProfessors, [key]: professorName };
-
-    try {
-      // Convert semester format
-      const semesterShort = semester.includes('Semester') 
-        ? semester.split(' ')[0] 
-        : semester;
-
-      // Find the schedule document
-      const schedulesCol = collection(db, 'schedules');
-      const q = query(
-        schedulesCol,
-        where('program', '==', program),
-        where('sectionName', '==', sectionName),
-        where('year', '==', year),
-        where('semester', '==', semesterShort),
-        where('yearLevel', '==', yearLevel)
-      );
-
-      const querySnapshot = await new Promise((resolve, reject) => {
-        const unsub = onSnapshot(q, 
-          (snapshot) => {
-            unsub();
-            resolve(snapshot);
-          },
-          (error) => {
-            unsub();
-            reject(error);
-          }
-        );
-      });
-
-      if (!querySnapshot.empty) {
-        const scheduleDoc = querySnapshot.docs[0];
-        await updateDoc(scheduleDoc.ref, {
-          professorAssignments: newAssignments
-        });
-        setAssignedProfessors(newAssignments);
-      } else {
-        console.error('No schedule document found');
-      }
-    } catch (error) {
-      console.error('Error assigning professor:', error);
-      alert('Failed to assign professor. Please try again.');
-    }
+    setAssignedProfessors(newAssignments);
+    setIsDirty(true);
   };
 
   const handleSave = async () => {
+    if (!isDirty) {
+      alert('No changes to save.');
+      return;
+    }
+
     const confirmed = window.confirm('Are you sure you want to save these professor assignments?');
     if (!confirmed) return;
 
-    alert('Professor assignments saved successfully!');
-    navigate(-1);
+    try {
+      if (!scheduleDocId) {
+        alert('Unable to find schedule document to save.');
+        return;
+      }
+      const ref = doc(db, 'schedules', scheduleDocId);
+      await updateDoc(ref, { professorAssignments: assignedProfessors, updatedAt: serverTimestamp() });
+      setIsDirty(false);
+      alert('Professor assignments saved successfully!');
+      navigate(-1);
+    } catch (e) {
+      console.error('Failed to save assignments', e);
+      alert('Failed to save assignments. Please try again.');
+    }
   };
 
   const getCellStyle = (day, time) => {
