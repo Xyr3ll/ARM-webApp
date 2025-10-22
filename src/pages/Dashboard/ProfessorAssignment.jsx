@@ -155,6 +155,12 @@ export default function ProfessorAssignment() {
   };
 
   const handleSave = async () => {
+    // Prevent saving if not all required slots have an assigned professor
+    if (!allSlotsAssigned) {
+      alert('Please assign a professor to every subject before saving.');
+      return;
+    }
+
     if (!isDirty) {
       alert('No changes to save.');
       return;
@@ -480,22 +486,23 @@ export default function ProfessorAssignment() {
         <button
           onClick={handleSave}
           // allow saving if there are unsaved changes (isDirty) even when allSlotsAssigned is true
-          disabled={Boolean(viewOnly) || (!isDirty && allSlotsAssigned)}
+          // Enable save only when not view-only, there are unsaved changes, and all required slots are assigned
+          disabled={Boolean(viewOnly) || !isDirty || !allSlotsAssigned}
           style={{
-            background: (viewOnly || (!isDirty && allSlotsAssigned)) ? '#94a3b8' : '#10b981',
+              background: (viewOnly || !isDirty || !allSlotsAssigned) ? '#94a3b8' : '#10b981',
             color: '#fff',
             border: 'none',
             borderRadius: 6,
             padding: '10px 24px',
             fontWeight: 700,
             fontSize: 15,
-            cursor: (viewOnly || (!isDirty && allSlotsAssigned)) ? 'not-allowed' : 'pointer',
+              cursor: (viewOnly || !isDirty || !allSlotsAssigned) ? 'not-allowed' : 'pointer',
             display: 'flex',
             alignItems: 'center',
             gap: 8
           }}
         >
-          {viewOnly ? 'Locked' : (isDirty ? 'Save' : (allSlotsAssigned ? 'Locked' : 'Save'))}
+            {viewOnly ? 'Locked' : (!allSlotsAssigned ? 'Fill all slots' : (isDirty ? 'Save' : 'No changes'))}
         </button>
       </div>
 
