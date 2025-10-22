@@ -50,7 +50,6 @@ function LoginPage() {
             src={stiLogo}
             alt="ARM Logo"
             className="login-logo"
-            style={{ height: 250, marginBottom: 8 }}
           />
 
           <form className="login-form" onSubmit={handleSubmit}>
