@@ -239,10 +239,30 @@ const CreateSchedule = () => {
       return;
     }
     try {
-      // Ensure program doc exists, then add to subcollection 'sections'
+      // Ensure program doc exists
       const programDoc = doc(db, "gradeLevelSection", program);
       await setDoc(programDoc, { program }, { merge: true });
+
+      // Check for duplicate section name in the same academicYear + semester
       const sectionsCol = collection(programDoc, "sections");
+      const { getDocs, query: fsQuery, where: fsWhere } = await import(
+        "firebase/firestore"
+      );
+      const q = fsQuery(
+        sectionsCol,
+        fsWhere("sectionName", "==", newSectionName.trim()),
+        fsWhere("academicYear", "==", year),
+        fsWhere("semester", "==", semester)
+      );
+      const existing = await getDocs(q);
+      if (!existing.empty) {
+        setSectionError(
+          "Section name already exists for this program, academic year and semester. Choose a different name."
+        );
+        return;
+      }
+
+      // Create new section document
       const docRef = await addDoc(sectionsCol, {
         sectionName: newSectionName.trim(),
         yearLevel: pendingYearLevel,

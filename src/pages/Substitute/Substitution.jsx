@@ -42,12 +42,18 @@ export default function Substitution() {
         const professorAssignments = data.professorAssignments || {};
         Object.entries(schedule).forEach(([key, val]) => {
           const [day, time] = key.split('_');
-          const professor = professorAssignments[key];
+          // Resolve professor from several possible sources: professorAssignments mapping OR properties on the schedule entry itself
+          let professor = professorAssignments[key];
+          if (!professor && val) {
+            // Common property names that might hold the assigned professor
+            professor = val.professor || val.instructor || val.professorName || val.assignedProfessor || val.professorAssigned || '';
+          }
           if (professor && val && val.subject) {
-            if (!schedules[professor]) schedules[professor] = [];
-            schedules[professor].push({
+            const pname = String(professor || '').trim();
+            if (!schedules[pname]) schedules[pname] = [];
+            schedules[pname].push({
               day,
-              startTime: time,
+              startTime: String(time || '').trim(),
               endTime: val.endTime || '',
               subject: val.subject,
               section: data.sectionName || docSnap.id,
@@ -99,6 +105,15 @@ export default function Substitution() {
               substituteTeacher = schedDoc.schedule[key].substituteTeacher;
             }
           }
+          // Determine endTime for this slot from the schedule document if available
+          let slotEndTime = '';
+          if (schedDoc && schedDoc.schedule) {
+            const key = `${slot.day}_${slot.startTime}`;
+            if (schedDoc.schedule[key] && schedDoc.schedule[key].endTime) {
+              slotEndTime = schedDoc.schedule[key].endTime;
+            }
+          }
+
           slots.push({
             program: slot.program || 'BSIT',
             courseName: slot.subject,
@@ -106,6 +121,7 @@ export default function Substitution() {
             section: slot.section,
             day: slot.day,
             startTime: slot.startTime,
+            endTime: slotEndTime || slot.endTime || '',
             substituteTeacher,
           });
           // Pre-fill the substitute dropdown with the current substituteTeacher if any
@@ -268,7 +284,10 @@ export default function Substitution() {
         boxShadow: '0 2px 16px #0002',
         minWidth: 900,
         maxWidth: 1200,
-        padding: 64,
+        // Constrain height and make content scrollable when it overflows the viewport
+        maxHeight: 'calc(100vh - 80px)',
+        overflowY: 'auto',
+        padding: 32,
         position: 'relative',
       }}>
         {successMessage && (
@@ -327,7 +346,49 @@ export default function Substitution() {
                     }
                     const origSchedule = subjects[idx];
                     const schedules = professorSchedules[f.name] || [];
-                    const conflict = schedules.some(sched => sched.day === origSchedule.day && sched.startTime === origSchedule.startTime);
+                    // Robust time overlap detection
+                    const parseToMinutes = (label) => {
+                      if (!label) return null;
+                      // Normalize e.g., '7:00AM', '7:00 AM', '07:00', '7:30pm'
+                      const raw = String(label).trim().toLowerCase().replace(/\s+/g, '');
+                      const m = raw.match(/^(\d{1,2}):(\d{2})(am|pm)?$/i) || raw.match(/^(\d{1,2})(am|pm)$/i);
+                      if (m) {
+                        let hh = parseInt(m[1], 10);
+                        let mm = m[2] ? parseInt(m[2], 10) : 0;
+                        const ampm = (m[3] || m[2] && m[2].match(/(am|pm)/i) ? (m[2].match(/(am|pm)/i) || [])[0] : '') || '';
+                        const suffix = (m[3] || '').toLowerCase();
+                        if (suffix === 'pm' && hh !== 12) hh += 12;
+                        if (suffix === 'am' && hh === 12) hh = 0;
+                        return hh * 60 + mm;
+                      }
+                      // Try 24-hour with colon
+                      const m2 = raw.match(/^(\d{1,2}):(\d{2})$/);
+                      if (m2) {
+                        const hh = parseInt(m2[1], 10);
+                        const mm = parseInt(m2[2], 10);
+                        return hh * 60 + mm;
+                      }
+                      return null;
+                    };
+
+                    const origDay = String(origSchedule.day || '').toLowerCase();
+                    const origStartMin = parseToMinutes(origSchedule.startTime);
+                    const origEndMin = parseToMinutes(origSchedule.endTime || origSchedule.startTime);
+
+                    const conflict = schedules.some(sched => {
+                      const sDay = String(sched.day || '').toLowerCase();
+                      if (sDay !== origDay) return false;
+                      const sStartMin = parseToMinutes(sched.startTime);
+                      const sEndMin = parseToMinutes(sched.endTime || sched.startTime);
+                      if (origStartMin === null || sStartMin === null) {
+                        // Fallback to exact string compare when parsing fails
+                        const normalizeTime = t => String(t || '').replace(/\s/g, '').toLowerCase();
+                        if (normalizeTime(sched.startTime) === normalizeTime(origSchedule.startTime)) return true;
+                        return false;
+                      }
+                      // If we have both ranges, check overlap: [start, end)
+                      return origStartMin < sEndMin && sStartMin < origEndMin;
+                    });
                     if (conflict) {
                       console.log('DEBUG: Faculty', f.name, 'CONFLICT for', subj.courseName, subj.day, subj.startTime);
                     }

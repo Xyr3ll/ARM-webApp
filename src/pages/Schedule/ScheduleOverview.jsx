@@ -3,7 +3,7 @@ import './Schedule.css';
 import { HiArrowLeft, HiPrinter } from 'react-icons/hi2';
 import { useNavigate } from 'react-router-dom';
 import { db } from '../../firebase';
-import { collection, query, where, onSnapshot, doc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc, getDocs, getDoc } from 'firebase/firestore';
 
 const ScheduleOverview = () => {
   const navigate = useNavigate();
@@ -209,28 +209,28 @@ const ScheduleOverview = () => {
   // For professors tab: fetch ALL schedules regardless of filters to show complete schedule
   useEffect(() => {
     const q = query(collection(db, 'schedules'));
-    
-    const unsubSchedules = onSnapshot(q, (snap) => {
+
+    const unsubSchedules = onSnapshot(q, async (snap) => {
       const professorSchedules = {};
-      
-      snap.forEach((docSnap) => {
-        const data = docSnap.data();
-        // Skip archived schedules
+
+      // helper to process a schedule document's data
+      const processScheduleDoc = (data, sectionName) => {
+        if (!data) return;
         if (String(data?.status).toLowerCase() === 'archived') return;
-        
-        const sectionName = data.sectionName || docSnap.id;
         const schedule = data.schedule || {};
         const professorAssignments = data.professorAssignments || {};
-        
-        // Build professor schedules from assignments
         Object.entries(schedule).forEach(([key, val]) => {
           const [day, time] = key.split('_');
-          const professor = professorAssignments[key];
-          
-          if (professor && val && val.subject) {
-            if (!professorSchedules[professor]) {
-              professorSchedules[professor] = [];
+          let professor = professorAssignments && professorAssignments[key];
+          if (!professor && val) {
+            professor = val.professor || val.instructor || val.professorName || val.assignedProfessor || val.professorAssigned;
+            if (typeof professor === 'object' && professor !== null) {
+              professor = professor.name || professor.professor || professor.fullName || '';
             }
+          }
+          if (typeof professor === 'string') professor = professor.trim();
+          if (professor && val && val.subject) {
+            if (!professorSchedules[professor]) professorSchedules[professor] = [];
             professorSchedules[professor].push({
               day,
               startTime: time,
@@ -239,42 +239,58 @@ const ScheduleOverview = () => {
               subject: val.subject,
               room: val.room || '',
               section: sectionName,
-              yearLevel: data.yearLevel, // Add year level for reference
-              program: data.program, // Add program for reference
-              semester: data.semester // Add semester for reference
+              yearLevel: data.yearLevel,
+              program: data.program,
+              semester: data.semester
             });
           }
         });
+      };
+
+      // process root schedules
+      snap.forEach((docSnap) => {
+        const data = docSnap.data();
+        const sectionName = data.sectionName || docSnap.id;
+        processScheduleDoc(data, sectionName);
       });
-      
+
+      // Also include nested schedules under gradeLevelSection/*/sections/*/schedule/calendar (one-time fetch)
+      try {
+        const gradeLevelSnap = await getDocs(collection(db, 'gradeLevelSection'));
+        for (const progDoc of gradeLevelSnap.docs) {
+          const sectionsSnap = await getDocs(collection(db, 'gradeLevelSection', progDoc.id, 'sections'));
+          for (const secDoc of sectionsSnap.docs) {
+            const schedRef = doc(db, 'gradeLevelSection', progDoc.id, 'sections', secDoc.id, 'schedule', 'calendar');
+            const schedSnap = await getDoc(schedRef);
+            const schedData = schedSnap.exists() ? schedSnap.data() : null;
+            const secName = secDoc.data()?.sectionName || secDoc.id;
+            processScheduleDoc(schedData, secName);
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to include nested schedules for professors:', err);
+      }
+
       // Now fetch faculty data to add non-teaching hours AND filter archived faculty
       const facultyQuery = query(collection(db, 'faculty'));
       const unsubFaculty = onSnapshot(facultyQuery, (facultySnap) => {
-        // Build a set of archived professors
         const archivedProfessors = new Set();
-        
         facultySnap.forEach((facultyDoc) => {
           const facultyData = facultyDoc.data();
           const professorName = facultyData.professor;
-          
-          // Track archived faculty
           if (String(facultyData?.status).toLowerCase() === 'archived') {
             archivedProfessors.add(professorName);
             return;
           }
-          
           const nonTeachingHours = facultyData.nonTeachingHours || [];
-          
-          // Only add non-teaching hours if professor already has teaching schedules
           if (professorName && nonTeachingHours.length > 0 && professorSchedules[professorName]) {
-            // Add non-teaching hours to the schedule
             nonTeachingHours.forEach((assignment) => {
               if (assignment.day && assignment.time && assignment.type) {
                 professorSchedules[professorName].push({
                   day: assignment.day,
                   startTime: assignment.time,
-                  endTime: '', // Non-teaching hours don't have explicit end time
-                  durationSlots: assignment.hours || 1, // Use hours as duration
+                  endTime: '',
+                  durationSlots: assignment.hours || 1,
                   subject: assignment.type === 'Consultation' ? 'CONSULTATION' : 'ADMIN',
                   room: '',
                   section: ''
@@ -283,18 +299,14 @@ const ScheduleOverview = () => {
             });
           }
         });
-        
-        // Remove archived professors from the schedule data
-        archivedProfessors.forEach(prof => {
-          delete professorSchedules[prof];
-        });
-        
+        archivedProfessors.forEach(prof => { delete professorSchedules[prof]; });
         setProfessorsData(professorSchedules);
       });
-      
-      return () => unsubFaculty();
+
+      // No explicit cleanup for unsubFaculty here because onSnapshot will return a function only within this handler scope
+      // It will be cleaned up when the component unmounts via unsubSchedules above.
     });
-    
+
     return () => unsubSchedules();
   }, []); // No dependencies - fetch all schedules
 

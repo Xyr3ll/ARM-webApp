@@ -139,12 +139,22 @@ const ProgramHeadDashboard = () => {
               </li>
               <li>
                 <NavLink
+                  to="archived-class-schedule"
+                  className={({ isActive }) =>
+                    isActive ? "side-link active" : "side-link"
+                  }
+                >
+                  <HiBookOpen className="side-icon" /> Archived Class Schedule
+                </NavLink>
+              </li>
+              <li>
+                <NavLink
                   to="faculty-archive"
                   className={({ isActive }) =>
                     isActive ? "side-link active" : "side-link"
                   }
                 >
-                  <HiArchiveBox className="side-icon" /> Archive
+                  <HiArchiveBox className="side-icon" /> Archive Faculties
                 </NavLink>
               </li>
               <li>

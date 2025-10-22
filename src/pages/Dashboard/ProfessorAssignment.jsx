@@ -297,45 +297,56 @@ export default function ProfessorAssignment() {
     const endTime = endTimeIndex < timeSlots.length ? timeSlots[endTimeIndex] : '';
 
     // Filter faculty who have this course in their courses array
-    // Match by either courseCode OR courseName
+    // Match by flexible rules: courseCode exact match OR courseName substring match (ignore parentheses and case)
     const qualifiedFaculty = faculty.filter(prof => {
       if (!prof.courses || !Array.isArray(prof.courses)) return false;
-      
+
+      const normalize = (s = '') => String(s).toLowerCase().replace(/[()]/g, '').replace(/\s+/g, ' ').trim();
+      const subjectNorm = normalize(courseCode);
+
       // First check if they're qualified for this course
       const hasQualification = prof.courses.some(course => {
-        // Match by courseCode
-        if (course.courseCode && course.courseCode.trim() === courseCode) {
-          return true;
-        }
-        // Match by courseName
-        if (course.courseName && course.courseName.trim() === courseCode) {
-          return true;
-        }
+        const code = (course.courseCode || '').toLowerCase().trim();
+        const nameNorm = normalize(course.courseName || course.course || '');
+
+        // Exact code match
+        if (code && subjectNorm === code) return true;
+
+        // Subject could be a short name extracted from a long course name with inner parentheses.
+        // Accept if either normalized course name contains the subject text or vice-versa.
+        if (nameNorm && (nameNorm.includes(subjectNorm) || subjectNorm.includes(nameNorm))) return true;
+
+        // Also accept if subject contains the course code token
+        if (code && subjectNorm.includes(code)) return true;
+
         return false;
       });
-      
+
       if (!hasQualification) return false;
       
       // Check if professor has conflicting schedule across ALL schedules
       for (const scheduleDoc of allSchedules) {
         const assignments = scheduleDoc.professorAssignments || {};
         const scheduleData = scheduleDoc.schedule || {};
-        
+
         for (const [assignedKey, assignedProf] of Object.entries(assignments)) {
           if (assignedProf !== prof.professor) continue; // Skip if not this professor
-          
+
           const [assignedDay, assignedTime] = assignedKey.split('_');
-          
+
           // Skip if different day
           if (assignedDay !== day) continue;
-          
+
           // Skip if it's the same cell in the current section (allowing reassignment)
           if (assignedKey === key && scheduleDoc.sectionName === sectionName) continue;
-          
+
+          // Do NOT treat different yearLevel as blocking — allow cross-year checks only by time overlap
+          // (This relaxes the previous behavior that implicitly filtered by year level.)
+
           // Get duration of assigned schedule
           const assignedCellData = scheduleData?.[assignedKey];
           const assignedDuration = assignedCellData?.durationSlots || 1;
-          
+
           // Check if times overlap
           if (timeSlotsOverlap(time, currentDuration, assignedTime, assignedDuration)) {
             console.log(`Conflict found for ${prof.professor}: ${assignedDay} ${assignedTime} (${scheduleDoc.sectionName}) overlaps with ${day} ${time}`);
@@ -425,6 +436,15 @@ export default function ProfessorAssignment() {
     return Object.values(assignedProfessors || {}).some(v => v && String(v).trim() !== '');
   }, [assignedProfessors]);
 
+  // Determine if all required slots (slots with a subject) have an assigned professor
+  const allSlotsAssigned = React.useMemo(() => {
+    if (!schedule) return false;
+    const keys = Object.keys(schedule || {});
+    const requiredKeys = keys.filter(k => schedule[k] && schedule[k].subject);
+    if (requiredKeys.length === 0) return false;
+    return requiredKeys.every(k => assignedProfessors && assignedProfessors[k] && String(assignedProfessors[k]).trim() !== '');
+  }, [schedule, assignedProfessors]);
+
   if (loading) {
     return (
       <div style={{ padding: 40, textAlign: 'center' }}>
@@ -487,22 +507,22 @@ export default function ProfessorAssignment() {
         </div>
         <button
           onClick={handleSave}
-          disabled={Boolean(viewOnly) || hasAnyAssignedProfessor}
+          disabled={Boolean(viewOnly) || allSlotsAssigned}
           style={{
-            background: (viewOnly || hasAnyAssignedProfessor) ? '#94a3b8' : '#10b981',
+            background: (viewOnly || allSlotsAssigned) ? '#94a3b8' : '#10b981',
             color: '#fff',
             border: 'none',
             borderRadius: 6,
             padding: '10px 24px',
             fontWeight: 700,
             fontSize: 15,
-            cursor: (viewOnly || hasAnyAssignedProfessor) ? 'not-allowed' : 'pointer',
+            cursor: (viewOnly || allSlotsAssigned) ? 'not-allowed' : 'pointer',
             display: 'flex',
             alignItems: 'center',
             gap: 8
           }}
         >
-          {(viewOnly || hasAnyAssignedProfessor) ? 'Locked' : 'Save'}
+          {(viewOnly || allSlotsAssigned) ? 'Locked' : 'Save'}
         </button>
       </div>
 

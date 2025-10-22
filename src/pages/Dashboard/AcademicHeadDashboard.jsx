@@ -123,16 +123,6 @@ const AcademicHeadDashboard = () => {
                   <ul className="sidebar-sublist">
                     <li>
                       <NavLink
-                        to="archived-class-schedule"
-                        className={({ isActive }) =>
-                          isActive ? "side-link active" : "side-link"
-                        }
-                      >
-                        Archived Class Schedule
-                      </NavLink>
-                    </li>
-                    <li>
-                      <NavLink
                         to="curriculum-archive"
                         className={({ isActive }) =>
                           isActive ? "side-link active" : "side-link"

@@ -33,16 +33,16 @@ const AddCurriculum = () => {
   // Track original row count for submitted curriculums (to determine which rows are newly added)
   const [originalRowCount] = useState(initialRows?.length || 0);
 
-  // Get current year for validation
-  const currentYear = new Date().getFullYear();
-  
-  // Validate curriculum year (2000 to current year only)
+  // Allowed curriculum years (explicit range)
+  const ALLOWED_YEAR_START = 2022;
+  const ALLOWED_YEAR_END = 2026;
+
+  // Validate curriculum year (only allow years 2022 through 2026)
   const isValidYear = (year) => {
     if (!year) return true; // Allow empty for now
     const yearNum = parseInt(year);
     if (isNaN(yearNum)) return false;
-    // Allow 2000 to current year only
-    return yearNum >= 2000 && yearNum <= currentYear;
+    return yearNum >= ALLOWED_YEAR_START && yearNum <= ALLOWED_YEAR_END;
   };
   
   // Generate school year based on curriculum year and level
@@ -323,7 +323,7 @@ const AddCurriculum = () => {
     // Validate all curriculum years
     const invalidYears = rows.filter(row => row.year && !isValidYear(row.year));
     if (invalidYears.length > 0) {
-      alert(`Invalid curriculum year. Please use years from 2000 to ${currentYear} (e.g., 2022, 2023, 2024, ... ${currentYear}).`);
+      alert(`Invalid curriculum year. Please use years from ${ALLOWED_YEAR_START} to ${ALLOWED_YEAR_END} (e.g., ${ALLOWED_YEAR_START}, ${ALLOWED_YEAR_START + 1}, ... ${ALLOWED_YEAR_END}).`);
       return;
     }
     
@@ -374,7 +374,7 @@ const AddCurriculum = () => {
     // Validate all curriculum years
     const invalidYears = rows.filter(row => row.year && !isValidYear(row.year));
     if (invalidYears.length > 0) {
-      alert(`Invalid curriculum year. Please use years from 2000 to ${currentYear} (e.g., 2022, 2023, 2024, ... ${currentYear}).`);
+      alert(`Invalid curriculum year. Please use years from ${ALLOWED_YEAR_START} to ${ALLOWED_YEAR_END} (e.g., ${ALLOWED_YEAR_START}, ${ALLOWED_YEAR_START + 1}, ... ${ALLOWED_YEAR_END}).`);
       return;
     }
     
@@ -509,7 +509,7 @@ const AddCurriculum = () => {
                 className="curriculum-input"
                 value={row.year}
                 onChange={(e) => update(idx, "year", e.target.value)}
-                placeholder={`e.g., 2022, 2024, ${currentYear}`}
+                placeholder={`e.g., ${ALLOWED_YEAR_START} - ${ALLOWED_YEAR_END}`}
                 maxLength="4"
                 title={row.level ? `School Year: ${generateSchoolYear(row.year, row.level)}` : "Curriculum Year"}
                 disabled={isOriginalRow}

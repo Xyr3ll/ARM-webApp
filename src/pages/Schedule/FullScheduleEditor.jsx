@@ -836,9 +836,6 @@ const FullScheduleEditor = ({
         <div
           style={{ display: "flex", alignItems: "center", marginBottom: 24 }}
         >
-          <span style={{ fontWeight: 500, fontSize: 18, marginLeft: "auto" }}>
-            Academic Head
-          </span>
         </div>
         {/* Filter Chips */}
         <div
@@ -892,23 +889,6 @@ const FullScheduleEditor = ({
             >
               SUBMITTED (READ-ONLY)
             </span>
-          )}
-          {!isSubmitted && (
-            <button
-              onClick={archiveSchedule}
-              style={{
-                background: "#43a047",
-                color: "#fff",
-                border: "none",
-                borderRadius: 6,
-                padding: "6px 18px",
-                fontWeight: 600,
-                fontSize: 16,
-                marginLeft: 8,
-              }}
-            >
-              Archive
-            </button>
           )}
         </div>
 

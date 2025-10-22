@@ -23,6 +23,7 @@ export default function AddFaculty() {
       }))
     : [{ courseCode: "", courseName: "", units: 0 }]);
   const [availableCourses, setAvailableCourses] = useState([]);
+  const [courseSuggestionRow, setCourseSuggestionRow] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -72,16 +73,24 @@ export default function AddFaculty() {
 
   // ...existing code...
   useEffect(() => {
-    if (!program || !semester) {
+    // Require semester to filter rows, but allow program to be empty so users can search across programs
+    if (!semester) {
       setAvailableCourses([]);
       return;
     }
 
-    const q = query(
-      collection(db, 'curriculum'),
-      where('programCode', '==', program),
-      where('status', '==', 'submitted')
-    );
+    // Include archived and submitted curricula so older/archived curriculum rows still appear
+    // If program is not selected, query all programs for submitted/archived docs to allow typing-wide search
+    const q = program
+      ? query(
+          collection(db, 'curriculum'),
+          where('programCode', '==', program),
+          where('status', 'in', ['submitted', 'archived'])
+        )
+      : query(
+          collection(db, 'curriculum'),
+          where('status', 'in', ['submitted', 'archived'])
+        );
 
     const unsub = onSnapshot(q, (snap) => {
       const coursesList = [];
@@ -108,6 +117,7 @@ export default function AddFaculty() {
                 lab: parseFloat(row.lab) || 0,
                 compLab: row.compLab || 'No',
                 level: row.level || '',
+                programCode: data.programCode || program,
               });
             }
           });
@@ -129,6 +139,7 @@ export default function AddFaculty() {
               lab: parseFloat(data.lab) || 0,
               compLab: data.compLab || 'No',
               level: data.level || '',
+              programCode: data.programCode || program,
             });
           }
         }
@@ -162,6 +173,45 @@ export default function AddFaculty() {
       ));
     }
   };
+
+  // Suggestions helpers for course name typing
+  const getCourseSuggestions = (query) => {
+    // If query is empty, return a limited set so user can browse options on focus
+    if (!query) return availableCourses.slice(0, 200);
+    const q = query.trim().toLowerCase();
+    return availableCourses.filter(c => (c.courseName || '').toLowerCase().includes(q) || (c.courseCode || '').toLowerCase().includes(q));
+  };
+
+  const handleCourseNameInput = (idx, value) => {
+    setCourses((c) => c.map((row, i) => i === idx ? { ...row, courseName: value } : row));
+    setCourseSuggestionRow(idx);
+  };
+
+  const applyCourseSuggestion = (idx, course) => {
+    setCourses((c) => c.map((row, i) => i === idx ? {
+      courseCode: course.courseCode,
+      courseName: course.courseName,
+      units: course.units
+    } : row));
+    // update top-level program to match the selected course's programCode if available
+    try {
+      if (course.programCode && course.programCode !== program) setProgram(course.programCode);
+    } catch (e) {}
+    setCourseSuggestionRow(null);
+  };
+
+  // Close course suggestions when clicking outside inputs
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      // if click is not inside an input or list item, close suggestions
+      const tag = e.target && e.target.tagName;
+      if (tag !== 'INPUT' && tag !== 'LI' && tag !== 'OPTION' && tag !== 'SELECT') {
+        setCourseSuggestionRow(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const calculateTotalUnits = () => {
     return courses.reduce((sum, course) => sum + (parseFloat(course.units) || 0), 0);
@@ -413,7 +463,6 @@ export default function AddFaculty() {
             <select value={semester} onChange={(e) => setSemester(e.target.value)} required>
               <option value="1st">1st Semester</option>
               <option value="2nd">2nd Semester</option>
-              <option value="Summer">Summer</option>
             </select>
           </div>
         </div>
@@ -466,44 +515,75 @@ export default function AddFaculty() {
         )}
 
         <div className="course-table-wrap">
-          <table className="faculty-loading-table">
+          <table className="faculty-loading-table" style={{ width: '100%', tableLayout: 'fixed' }}>
             <thead>
               <tr>
-                <th>Program Code</th>
-                <th>Program Name</th>
-                <th>Units</th>
-                <th>Action</th>
+                <th style={{ textAlign: 'left' }}>Course Name</th>
+                <th style={{ width: 100, textAlign: 'center' }}>Units</th>
+                <th style={{ width: 110, textAlign: 'center' }}>Action</th>
               </tr>
             </thead>
             <tbody>
               {courses.map((course, idx) => (
                 <tr key={idx}>
-                  <td>
-                    <select
-                      value={course.courseCode}
-                      onChange={(e) => handleCourseChange(idx, e.target.value)}
-                      style={{ width: '100%', padding: '8px' }}
-                      required
-                    >
-                      <option value="">Select course</option>
-                      {availableCourses.map((c, i) => (
-                        <option key={i} value={c.courseCode}>
-                          {c.courseCode}
-                        </option>
-                      ))}
-                    </select>
-                  </td>
-                  <td>
+                  <td style={{ position: 'relative' }}>
                     <input
                       type="text"
                       value={course.courseName}
-                      readOnly
-                      style={{ width: '100%', padding: '8px', background: '#f5f5f5' }}
-                      placeholder="Auto-filled from selection"
+                      onChange={(e) => handleCourseNameInput(idx, e.target.value)}
+                      onFocus={() => setCourseSuggestionRow(idx)}
+                      placeholder="Type to search subjects (e.g., P.E)"
+                      style={{ width: '100%', padding: '8px' }}
                     />
+                    {courseSuggestionRow === idx && (() => {
+                      const suggestions = getCourseSuggestions(course.courseName);
+                      if (!suggestions || suggestions.length === 0) return null;
+                      return (
+                        <ul style={{
+                          position: 'absolute',
+                          left: 0,
+                          right: 0,
+                          top: 'calc(100% + 4px)',
+                          background: '#fff',
+                          border: '1px solid #ddd',
+                          borderRadius: 6,
+                          zIndex: 10,
+                          maxHeight: 200,
+                          overflowY: 'auto',
+                          margin: 0,
+                          padding: 0,
+                          listStyle: 'none',
+                          boxShadow: '0 2px 8px #0002',
+                        }}>
+                          {suggestions.map((s, si) => (
+                            <li
+                              key={si}
+                              style={{
+                                padding: '8px 16px',
+                                cursor: 'pointer',
+                                borderBottom: si !== suggestions.length - 1 ? '1px solid #eee' : 'none',
+                                fontWeight: 500,
+                                color: s.courseName === course.courseName ? '#1e3a8a' : 'inherit',
+                                background: s.courseName === course.courseName ? '#f3f4f6' : '#fff',
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center'
+                              }}
+                              onMouseDown={() => applyCourseSuggestion(idx, s)}
+                            >
+                              <div>
+                                <div style={{ fontWeight: 700 }}>{s.courseName}</div>
+                                <div style={{ fontSize: 12, color: '#666' }}>{s.courseCode} • {s.programCode || ''}</div>
+                              </div>
+                              <div style={{ fontWeight: 700 }}>{s.units || 0}</div>
+                            </li>
+                          ))}
+                        </ul>
+                      );
+                    })()}
                   </td>
-                  <td style={{ textAlign: 'center', fontWeight: 600 }}>
-                    {course.units || 0}
+                  <td style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, width: 100, padding: '12px 8px' }}>
+                    <div style={{ lineHeight: 1 }}>{course.units || 0}</div>
                   </td>
                   <td>
                     <button 

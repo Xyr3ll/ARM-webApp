@@ -3,7 +3,7 @@ import { HiChevronLeft } from "react-icons/hi2";
 import { useNavigate } from "react-router-dom";
 import "./Reservations.css";
 import { db } from "../../firebase";
-import { collection, getDocs, doc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { collection, getDocs, doc, updateDoc, serverTimestamp, deleteDoc } from "firebase/firestore";
 
 const Reservations = () => {
   const navigate = useNavigate();
@@ -66,6 +66,37 @@ const Reservations = () => {
     }
   };
 
+  const handleArchive = async (id) => {
+    const confirmed = window.confirm('Archive this reservation? It will be hidden from active lists.');
+    if (!confirmed) return;
+    try {
+      const reservationRef = doc(db, 'reservations', id);
+      await updateDoc(reservationRef, {
+        status: 'archived',
+        updatedAt: serverTimestamp()
+      });
+      setReservations((prev) => prev.map(r => r.id === id ? { ...r, status: 'archived' } : r));
+      alert('Reservation archived.');
+    } catch (err) {
+      console.error('Failed to archive reservation', err);
+      alert('Failed to archive reservation.');
+    }
+  };
+
+  const handleDelete = async (id) => {
+    const confirmed = window.confirm('Delete this reservation permanently? This cannot be undone.');
+    if (!confirmed) return;
+    try {
+      const reservationRef = doc(db, 'reservations', id);
+      await deleteDoc(reservationRef);
+      setReservations((prev) => prev.filter(r => r.id !== id));
+      alert('Reservation deleted.');
+    } catch (err) {
+      console.error('Failed to delete reservation', err);
+      alert('Failed to delete reservation.');
+    }
+  };
+
   const closeNote = () => setOpenNote(null);
 
   return (
@@ -90,7 +121,7 @@ const Reservations = () => {
                 const approved = reservations.filter(r => r.status === 'approved');
                 const declined = reservations.filter(r => r.status === 'declined');
 
-                const renderTable = (list, showActions = false) => (
+                const renderTable = (list, mode = false) => (
                   <table className="reservations-table" style={{ marginBottom: 24 }}>
                     <thead>
                       <tr>
@@ -100,7 +131,7 @@ const Reservations = () => {
                         <th>Room</th>
                         <th>Room Type</th>
                         <th>Notes</th>
-                        <th>{showActions ? 'Actions' : 'Status'}</th>
+                        <th>{(mode === true || mode === 'deleteOnly') ? 'Actions' : 'Status'}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -117,8 +148,8 @@ const Reservations = () => {
                             <td className="notes-cell" onClick={() => reservation.notes && setOpenNote({ id: reservation.id, text: reservation.notes })}>
                               {reservation.notes || '-'}
                             </td>
-                            <td className="status-cell">
-                              {showActions ? (
+                            <td className="status-cell" style={{ textAlign: 'center', verticalAlign: 'middle' }}>
+                              {mode === true ? (
                                 <>
                                   <button
                                     className="approve-btn"
@@ -134,6 +165,15 @@ const Reservations = () => {
                               ) : (
                                 <span className={`status-label ${reservation.status || 'pending'}`}>{(reservation.status || 'Pending').toUpperCase()}</span>
                               )}
+                              {/* For non-pending rows show Delete when mode === 'deleteOnly' */}
+                              {reservation.status && reservation.status !== 'pending' && mode === 'deleteOnly' && (
+                                <div style={{ marginTop: 8, display: 'flex', gap: 8, justifyContent: 'center' }}>
+                                  <button
+                                    onClick={() => handleDelete(reservation.id)}
+                                    style={{ padding: '6px 10px', borderRadius: 6, border: 'none', background: '#ef4444', color: '#fff', cursor: 'pointer' }}
+                                  >Delete</button>
+                                </div>
+                              )}
                             </td>
                           </tr>
                         ))
@@ -148,10 +188,10 @@ const Reservations = () => {
                     {renderTable(pending, true)}
 
                     <h3>Approved</h3>
-                    {renderTable(approved, false)}
+                    {renderTable(approved, 'deleteOnly')}
 
                     <h3>Declined</h3>
-                    {renderTable(declined, false)}
+                    {renderTable(declined, 'deleteOnly')}
                   </>
                 );
               })()}
