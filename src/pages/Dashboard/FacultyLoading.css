@@ -52,6 +52,12 @@
   padding: 0.75rem;
   border-bottom: 1px solid #f0f0f0;
 }
+
+/* Ensure table cells vertically center their content */
+.faculty-loading-table th,
+.faculty-loading-table td {
+  vertical-align: middle;
+}
 .assign-btn {
   background: #43a047;
   color: #fff;
@@ -119,6 +125,40 @@
 }
 .course-table-wrap {
   margin: 1.2rem 0;
+}
+
+/* Make action buttons in the course table smaller and compact */
+.course-table-wrap .btn {
+  padding: 6px 10px;
+  min-width: 36px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+}
+.course-table-wrap .btn.green,
+.course-table-wrap .btn.danger {
+  padding: 6px 10px;
+}
+
+/* Make course input height consistent so Units column aligns vertically */
+.course-table-wrap input[type="text"] {
+  height: 44px;
+  box-sizing: border-box;
+}
+
+/* Ensure the units and action cells are centered vertically and horizontally */
+.course-table-wrap td:nth-child(2),
+.course-table-wrap td:nth-child(3) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Ensure the action column keeps buttons properly sized and centered */
+.course-table-wrap td:nth-child(3) .btn {
+  margin: 0 4px;
 }
 .btn {
   background: #eee;

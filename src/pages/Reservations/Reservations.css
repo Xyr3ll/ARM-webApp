@@ -19,7 +19,7 @@
   color: #0a2f5c;
   font-size: 1.8rem;
   font-weight: 700;
-  font-family: 'Alata', sans-serif;
+  font-family: "Alata", sans-serif;
   cursor: pointer;
   padding: 0;
   transition: opacity 0.2s;
@@ -45,7 +45,7 @@
   font-weight: 700;
   color: #0a2f5c;
   margin-bottom: 24px;
-  font-family: 'Alata', sans-serif;
+  font-family: "Alata", sans-serif;
 }
 
 .reservations-table-wrapper {
@@ -58,16 +58,19 @@
   width: 100%;
   border-collapse: collapse;
   background: #fff;
-  font-family: 'Alata', sans-serif;
+  font-family: "Alata", sans-serif;
 }
 
 .status-label {
-  display: inline-block;
-  padding: 6px 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 110px; /* match width */
+  height: 40px; /* uniform height */
   border-radius: 6px;
+  padding: 0; /* handled by height */
   font-weight: 700;
   font-size: 0.95rem;
-  color: #fff;
 }
 .status-label.approved {
   background: #16a34a;
@@ -86,7 +89,7 @@
 
 .reservations-table th {
   padding: 16px 20px;
-  text-align: left;
+  text-align: center;
   font-size: 1.1rem;
   font-weight: 700;
   color: #0a2f5c;
@@ -106,6 +109,7 @@
   padding: 20px 20px;
   font-size: 1rem;
   color: #333;
+  text-align: center;
 }
 
 .name-cell {
@@ -119,17 +123,15 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.notes-cell {
   cursor: pointer;
+  text-align: center;
 }
 
 /* Note modal */
 .note-modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.4);
+  background: rgba(0, 0, 0, 0.4);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -141,7 +143,7 @@
   width: 90%;
   padding: 20px;
   border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
 }
 .note-modal .close-btn {
   background: transparent;
@@ -159,8 +161,16 @@
 
 .status-cell {
   display: flex;
-  gap: 12px;
+  justify-content: center;
   align-items: center;
+}
+
+.result-cell {
+  text-align: center;
+  vertical-align: middle;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .approve-btn,
@@ -170,7 +180,7 @@
   border-radius: 6px;
   font-size: 1rem;
   font-weight: 600;
-  font-family: 'Alata', sans-serif;
+  font-family: "Alata", sans-serif;
   cursor: pointer;
   transition: all 0.2s;
 }
@@ -192,6 +202,29 @@
 }
 
 .decline-btn:hover {
+  background: #dc2626;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
+}
+
+.delete-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 110px;
+  height: 40px;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  padding: 0;
+  background: #ef4444;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+}
+
+.delete-btn:hover {
   background: #dc2626;
   transform: translateY(-1px);
   box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);

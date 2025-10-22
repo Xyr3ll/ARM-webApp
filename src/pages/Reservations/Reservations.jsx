@@ -131,12 +131,13 @@ const Reservations = () => {
                         <th>Room</th>
                         <th>Room Type</th>
                         <th>Notes</th>
-                        <th>{(mode === true || mode === 'deleteOnly') ? 'Actions' : 'Status'}</th>
+                        <th>Result</th>
+                        <th>Actions</th>
                       </tr>
                     </thead>
                     <tbody>
                       {list.length === 0 ? (
-                        <tr><td colSpan={7} style={{ textAlign: 'center' }}>No entries.</td></tr>
+                        <tr><td colSpan={8} style={{ textAlign: 'center' }}>No entries.</td></tr>
                       ) : (
                         list.map(reservation => (
                           <tr key={reservation.id}>
@@ -148,7 +149,10 @@ const Reservations = () => {
                             <td className="notes-cell" onClick={() => reservation.notes && setOpenNote({ id: reservation.id, text: reservation.notes })}>
                               {reservation.notes || '-'}
                             </td>
-                            <td className="status-cell" style={{ textAlign: 'center', verticalAlign: 'middle' }}>
+                            <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
+                              <span className={`status-label ${reservation.status || 'pending'}`}>{(reservation.status || 'Pending').toUpperCase()}</span>
+                            </td>
+                            <td className="status-cell" style={{ textAlign: 'center', verticalAlign: 'middle', justifyContent: 'center' }}>
                               {mode === true ? (
                                 <>
                                   <button
@@ -163,16 +167,11 @@ const Reservations = () => {
                                   >Decline</button>
                                 </>
                               ) : (
-                                <span className={`status-label ${reservation.status || 'pending'}`}>{(reservation.status || 'Pending').toUpperCase()}</span>
-                              )}
-                              {/* For non-pending rows show Delete when mode === 'deleteOnly' */}
-                              {reservation.status && reservation.status !== 'pending' && mode === 'deleteOnly' && (
-                                <div style={{ marginTop: 8, display: 'flex', gap: 8, justifyContent: 'center' }}>
-                                  <button
-                                    onClick={() => handleDelete(reservation.id)}
-                                    style={{ padding: '6px 10px', borderRadius: 6, border: 'none', background: '#ef4444', color: '#fff', cursor: 'pointer' }}
-                                  >Delete</button>
-                                </div>
+                                reservation.status && reservation.status !== 'pending' && (
+                                  <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+                                    <button className="delete-btn" onClick={() => handleDelete(reservation.id)}>Delete</button>
+                                  </div>
+                                )
                               )}
                             </td>
                           </tr>

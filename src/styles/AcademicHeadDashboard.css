@@ -528,8 +528,9 @@
 
 .dashboard-sidebar .dashboard-logo {
   display: block;
-  margin: 0 auto 24px auto;
-  height: 200px;
+  margin: 0 auto 12px auto;
+  height: 110px; /* reduced from 200px */
+  max-width: 160px;
   width: auto;
   object-fit: contain;
 }

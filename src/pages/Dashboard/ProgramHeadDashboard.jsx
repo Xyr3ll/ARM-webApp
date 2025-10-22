@@ -72,7 +72,7 @@ const ProgramHeadDashboard = () => {
               src={stiLogo}
               alt="ARM Logo"
               className="dashboard-logo"
-              style={{ marginBottom: 24 }}
+              style={{ marginBottom: 12 }}
             />
             <ul className="sidebar-list">
               <li>
