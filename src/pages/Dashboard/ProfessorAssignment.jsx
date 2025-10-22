@@ -148,13 +148,7 @@ export default function ProfessorAssignment() {
       return;
     }
 
-    // Prevent overwriting existing assignment unless it's the same value
-    const existing = assignedProfessors?.[key];
-    if (existing && existing !== '' && existing !== professorName) {
-      alert('This time slot already has an assigned professor and cannot be changed.');
-      return;
-    }
-    // Just update locally and mark dirty — do not auto-save
+    // Allow edits locally and mark dirty — do not auto-save yet
     const newAssignments = { ...assignedProfessors, [key]: professorName };
     setAssignedProfessors(newAssignments);
     setIsDirty(true);
@@ -384,13 +378,13 @@ export default function ProfessorAssignment() {
             border: '1px solid #d1d5db',
             fontSize: 10,
             fontWeight: 600,
-            cursor: (viewOnly || Boolean(assignedProfessors?.[key])) ? 'not-allowed' : 'pointer',
+            cursor: viewOnly ? 'not-allowed' : 'pointer',
             background: professor ? '#10b981' : '#ef4444',
             color: '#fff',
             outline: 'none'
           }}
           onClick={(e) => e.stopPropagation()}
-          disabled={viewOnly || Boolean(assignedProfessors?.[key])}
+          disabled={viewOnly}
         >
           <option value="" style={{ background: '#fff', color: '#000' }}>
             {qualifiedFaculty.length > 0 ? 'Select Professor' : 'No qualified faculty'}
@@ -485,22 +479,23 @@ export default function ProfessorAssignment() {
         </div>
         <button
           onClick={handleSave}
-          disabled={Boolean(viewOnly) || allSlotsAssigned}
+          // allow saving if there are unsaved changes (isDirty) even when allSlotsAssigned is true
+          disabled={Boolean(viewOnly) || (!isDirty && allSlotsAssigned)}
           style={{
-            background: (viewOnly || allSlotsAssigned) ? '#94a3b8' : '#10b981',
+            background: (viewOnly || (!isDirty && allSlotsAssigned)) ? '#94a3b8' : '#10b981',
             color: '#fff',
             border: 'none',
             borderRadius: 6,
             padding: '10px 24px',
             fontWeight: 700,
             fontSize: 15,
-            cursor: (viewOnly || allSlotsAssigned) ? 'not-allowed' : 'pointer',
+            cursor: (viewOnly || (!isDirty && allSlotsAssigned)) ? 'not-allowed' : 'pointer',
             display: 'flex',
             alignItems: 'center',
             gap: 8
           }}
         >
-          {(viewOnly || allSlotsAssigned) ? 'Locked' : 'Save'}
+          {viewOnly ? 'Locked' : (isDirty ? 'Save' : (allSlotsAssigned ? 'Locked' : 'Save'))}
         </button>
       </div>
 
