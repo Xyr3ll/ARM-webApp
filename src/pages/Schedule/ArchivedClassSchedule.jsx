@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import '../../styles/AcademicHeadDashboard.css';
 import stiLogo from '../../assets/stilogo.png';
 import { db } from '../../firebase';
-import { collection, doc, onSnapshot, query, serverTimestamp, setDoc, where } from 'firebase/firestore';
+import { collection, doc, onSnapshot, query, serverTimestamp, setDoc, where, getDocs } from 'firebase/firestore';
 
 const ArchivedClassSchedule = () => {
   const [year, setYear] = useState('2025-2026');
@@ -89,14 +89,50 @@ const ArchivedClassSchedule = () => {
     return () => unsub();
   }, [program, year]);
 
-  const handleView = (sectionId) => {
-    // Find the first match across groups and open modal
+  const handleView = async (sectionId) => {
+    // Find the first match across groups
+    let found = null;
     for (const sections of Object.values(archivedGroups)) {
-      const found = (sections || []).find((s) => s.id === sectionId);
-      if (found) {
-        setViewing(found);
+      const f = (sections || []).find((s) => s.id === sectionId);
+      if (f) {
+        found = f;
         break;
       }
+    }
+    if (!found) return;
+
+    // If schedule is present, show it
+    if (found.schedule && Object.keys(found.schedule).length > 0) {
+      setViewing(found);
+      return;
+    }
+
+    // Fallback: try to query schedules collection by sectionName + program to find any schedule stored elsewhere
+    try {
+      const q = query(
+        collection(db, 'schedules'),
+        where('sectionName', '==', found.name),
+        where('program', '==', program)
+      );
+      const snap = await getDocs(q);
+      let used = false;
+      snap.forEach((docSnap) => {
+        if (used) return;
+        const data = docSnap.data() || {};
+        const sched = data.schedule || {};
+        const isArchived = String(data.status || '').toLowerCase() === 'archived';
+        // prefer non-archived with schedule, but accept archived as fallback
+        if (sched && Object.keys(sched).length > 0) {
+          setViewing({ id: docSnap.id, name: found.name, schedule: sched });
+          used = true;
+        }
+      });
+      if (!used) {
+        alert('No schedule data found for this archived section.');
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Failed to load schedule');
     }
   };
 
@@ -167,10 +203,14 @@ const ArchivedClassSchedule = () => {
         >
           <option value="BSIT">BSIT</option>
           <option value="BSCS">BSCS</option>
+          <option value="CPE">CPE</option>
         </select>
       </div>
       <h3 style={{ fontWeight: 700, fontSize: 20, marginBottom: 24 }}>
-        {program === 'BSIT' ? 'Bachelor of Science in Information Technology' : 'Bachelor of Science in Computer Science'} ({year || new Date().getFullYear()})
+        {program === 'BSIT' && 'Bachelor of Science in Information Technology'}
+        {program === 'BSCS' && 'Bachelor of Science in Computer Science'}
+        {program === 'CPE' && 'Bachelor of Science in Computer Engineering'}
+        ({year || new Date().getFullYear()})
       </h3>
       <div style={{ display: 'flex', gap: 32 }}>
         {Object.entries(archivedGroups).map(([group, sections]) => (

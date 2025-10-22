@@ -546,8 +546,10 @@ const FullScheduleEditor = ({
       if (!v || !v.subject) continue;
       const [day, startTime] = key.split("_");
       const meta = getCounts(v.subject);
+      const isPE = isPESubject(v.subject);
       const isLab = meta.kind === "LAB" || (meta.compLab && meta.lab > 0);
-      const options = isLab ? labRooms : lecRooms;
+      // For PE subjects, allow lab/lecture rooms plus PE-specific rooms
+      const options = isPE ? [...roomOptions, ...peRooms] : (isLab ? labRooms : lecRooms);
       const valid = v.room && options.includes(v.room);
       if (!valid) issues.push({ day, startTime, subject: v.subject });
     }
@@ -669,11 +671,54 @@ const FullScheduleEditor = ({
         return "1st";
       })();
       const rootRef = doc(db, "schedules", `${String(sectionId)}_${semKey}`);
-      await setDoc(
-        rootRef,
-        { status: "archived", updatedAt: serverTimestamp() },
-        { merge: true }
-      );
+
+      // Prune current schedule like handleSave
+      const pruned = (() => {
+        const seen = new Set();
+        const out = {};
+        for (const [k, v] of Object.entries(schedule || {})) {
+          if (!v || !v.subject) continue;
+          if (seen.has(v.subject)) continue;
+          seen.add(v.subject);
+          const [day, startTime] = k.split("_");
+          const startIdx = times.indexOf(startTime);
+          let slots = Math.floor(Number(v.durationSlots));
+          if (!slots || slots < 1)
+            slots = Math.floor(Number(getSlotsForSubject(v.subject)) || 1);
+          const endTime =
+            times[Math.min(startIdx + slots, times.length)] ||
+            times[times.length - 1];
+          out[k] = { ...v, durationSlots: slots, startTime, endTime };
+        }
+        return out;
+      })();
+
+      // Preserve existing professorAssignments if present on the doc
+      let professorAssignments = undefined;
+      try {
+        const { getDoc } = await import("firebase/firestore");
+        const existingSnap = await getDoc(rootRef);
+        if (existingSnap.exists() && existingSnap.data().professorAssignments) {
+          professorAssignments = existingSnap.data().professorAssignments;
+        }
+      } catch (err) {
+        console.error("Failed to fetch existing professorAssignments for archive:", err);
+      }
+
+      const payload = {
+        schedule: pruned,
+        sectionName: sectionName || "",
+        program: program || "",
+        semester: semester || "",
+        yearLevel: yearLevel || "",
+        year: year || "",
+        status: "archived",
+        updatedAt: serverTimestamp(),
+      };
+      if (professorAssignments) payload.professorAssignments = professorAssignments;
+
+      // Write archived payload (overwrite to ensure schedule is present)
+      await setDoc(rootRef, payload, { merge: false });
       alert("Schedule archived");
     } catch (e) {
       alert("Failed to archive: " + (e?.message || e));
