@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { HiOutlineEye } from "react-icons/hi";
 import { db } from "../../firebase";
-import { collection, onSnapshot, query, where, doc, updateDoc, deleteField } from "firebase/firestore";
+import { collection, onSnapshot, query, where, doc, updateDoc, deleteField, getDoc, serverTimestamp, addDoc } from "firebase/firestore";
 import "../../App.css";
 import "./FacultyArchive.css";
 
@@ -10,6 +10,11 @@ export default function FacultyArchive() {
   const [loading, setLoading] = useState(true);
   const [selectedFaculty, setSelectedFaculty] = useState(null);
   const [showViewModal, setShowViewModal] = useState(false);
+  // Archived substitutions
+  const [archivedSubstitutions, setArchivedSubstitutions] = useState([]);
+  const [loadingSubs, setLoadingSubs] = useState(true);
+  const [selectedSubstitution, setSelectedSubstitution] = useState(null);
+  const [showSubModal, setShowSubModal] = useState(false);
 
   // Fetch archived faculty from Firestore
   useEffect(() => {
@@ -25,6 +30,45 @@ export default function FacultyArchive() {
     });
     
     return () => unsub();
+  }, []);
+
+  // Fetch archived substitutions from archived schedule documents
+  useEffect(() => {
+    setLoadingSubs(true);
+    // Only listen to the centralized history-substitution collection
+    const historyQuery = query(collection(db, 'history-substitution'));
+    const historyUnsub = onSnapshot(historyQuery, (snap) => {
+      const hist = [];
+      snap.forEach(docSnap => {
+        const data = docSnap.data();
+        hist.push({
+          id: docSnap.id,
+          docKey: data.docKey || null,
+          section: data.section || '',
+          program: data.program || '',
+          day: data.day || '',
+          startTime: data.startTime || '',
+          endTime: data.endTime || '',
+          subject: data.subject || '',
+          substituteTeacher: data.substituteTeacher || '',
+          originalProfessor: data.originalProfessor || '',
+          archivedAt: data.archivedAt || null
+        });
+      });
+      // sort by archivedAt desc
+      hist.sort((a, b) => {
+        const ta = a.archivedAt && a.archivedAt.toMillis ? a.archivedAt.toMillis() : (a.archivedAt ? new Date(a.archivedAt).getTime() : 0);
+        const tb = b.archivedAt && b.archivedAt.toMillis ? b.archivedAt.toMillis() : (b.archivedAt ? new Date(b.archivedAt).getTime() : 0);
+        return tb - ta;
+      });
+      setArchivedSubstitutions(hist);
+      setLoadingSubs(false);
+    }, (err) => {
+      console.error('Failed to load history substitutions', err);
+      setLoadingSubs(false);
+    });
+
+    return () => { historyUnsub(); };
   }, []);
 
   const handleViewFaculty = (faculty) => {
@@ -79,7 +123,8 @@ export default function FacultyArchive() {
         <button className="sort-btn">Sort <span>▼</span></button>
       </div>
       <div className="faculty-archive-table-wrapper">
-        <table className="faculty-archive-table">
+        <div className="faculty-archive-scroll">
+          <table className="faculty-archive-table">
           <thead>
             <tr>
               <th>PROGRAM</th>
@@ -118,8 +163,60 @@ export default function FacultyArchive() {
               ))
             )}
           </tbody>
-        </table>
+          </table>
+        </div>
       </div>
+          
+          {/* Archived Substitutions Table */}
+          <div className="faculty-archive-header" style={{ marginTop: 28 }}>
+            <h2>Archived Substitutions</h2>
+          </div>
+          <div className="faculty-archive-substitutions-wrapper">
+            <div className="faculty-archive-substitutions-scroll">
+              <table className="faculty-archive-table">
+              <thead>
+                <tr>
+                  <th>PROGRAM</th>
+                  <th>SECTION</th>
+                  <th>DAY</th>
+                  <th>TIME</th>
+                  <th>SUBJECT</th>
+                  <th>ORIGINAL</th>
+                  <th>SUBSTITUTE</th>
+                  <th>ARCHIVED AT</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loadingSubs ? (
+                  <tr>
+                    <td colSpan={8} style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+                      Loading archived substitutions...
+                    </td>
+                  </tr>
+                ) : archivedSubstitutions.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+                      No archived substitutions found
+                    </td>
+                  </tr>
+                ) : (
+                  archivedSubstitutions.map((s, i) => (
+                    <tr key={`${s.id}-${s.docKey}-${i}`}>
+                      <td>{s.program}</td>
+                      <td>{s.section}</td>
+                      <td>{s.day}</td>
+                      <td>{s.startTime}{s.endTime ? ` - ${s.endTime}` : ''}</td>
+                      <td>{s.subject}</td>
+                      <td>{s.originalProfessor}</td>
+                      <td>{s.substituteTeacher}</td>
+                      <td>{formatDate(s.archivedAt)}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+              </table>
+            </div>
+          </div>
 
       {/* View Faculty Modal */}
       {showViewModal && selectedFaculty && (
@@ -313,6 +410,113 @@ export default function FacultyArchive() {
               >
                 Close
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Substitution View Modal */}
+      {showSubModal && selectedSubstitution && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999
+        }}>
+          <div style={{
+            background: '#fff',
+            borderRadius: 12,
+            padding: 24,
+            width: '90%',
+            maxWidth: 600,
+            boxShadow: '0 10px 30px rgba(0,0,0,0.2)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <h3 style={{ margin: 0, fontSize: 20, fontWeight: 700 }}>Archived Substitution</h3>
+              <button onClick={() => { setShowSubModal(false); setSelectedSubstitution(null); }} style={{ background: '#eee', border: 'none', borderRadius: '50%', width: 32, height: 32, fontSize: 18, cursor: 'pointer' }}>×</button>
+            </div>
+
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 13, color: '#64748b' }}>Program</div>
+              <div style={{ fontWeight: 700 }}>{selectedSubstitution.program}</div>
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 13, color: '#64748b' }}>Section</div>
+              <div style={{ fontWeight: 700 }}>{selectedSubstitution.section}</div>
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 13, color: '#64748b' }}>Subject</div>
+              <div style={{ fontWeight: 700 }}>{selectedSubstitution.subject}</div>
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 13, color: '#64748b' }}>Time</div>
+              <div style={{ fontWeight: 700 }}>{selectedSubstitution.startTime}{selectedSubstitution.endTime ? ` - ${selectedSubstitution.endTime}` : ''}</div>
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 13, color: '#64748b' }}>Original Professor</div>
+              <div style={{ fontWeight: 700 }}>{selectedSubstitution.originalProfessor || 'N/A'}</div>
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 13, color: '#64748b' }}>Substitute</div>
+              <div style={{ fontWeight: 700, color: '#1e293b' }}>{selectedSubstitution.substituteTeacher}</div>
+            </div>
+
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 12 }}>
+              <button onClick={() => { setShowSubModal(false); setSelectedSubstitution(null); }} style={{ background: '#64748b', color: '#fff', padding: '10px 16px', borderRadius: 8, border: 'none', fontWeight: 700 }}>Close</button>
+              <button onClick={async () => {
+                // Archive the substitute in the schedule slot instead of deleting it
+                try {
+                  const docRef = doc(db, 'schedules', selectedSubstitution.id);
+                  const snap = await getDoc(docRef);
+                  if (!snap.exists()) {
+                    alert('Document not found');
+                    return;
+                  }
+                  const data = snap.data();
+                  const schedule = { ...(data.schedule || {}) };
+                  const key = selectedSubstitution.docKey;
+                  if (schedule[key] && (schedule[key].substituteTeacher || schedule[key].substituteArchivedTeacher)) {
+                    // choose the name to archive
+                    const archivedName = schedule[key].substituteTeacher || schedule[key].substituteArchivedTeacher;
+                    const professorAssignments = data.professorAssignments || {};
+                    const original = professorAssignments[key] || schedule[key].professor || schedule[key].instructor || '';
+                    // Create history-substitution doc
+                    const history = {
+                      scheduleId: docSnap.id,
+                      docKey: key,
+                      section: data.sectionName || docSnap.id,
+                      program: data.program || '',
+                      day: selectedSubstitution.day || '',
+                      startTime: selectedSubstitution.startTime || '',
+                      endTime: selectedSubstitution.endTime || '',
+                      subject: selectedSubstitution.subject || '',
+                      originalProfessor: original,
+                      substituteTeacher: archivedName,
+                      archivedAt: serverTimestamp()
+                    };
+                    await addDoc(collection(db, 'history-substitution'), history);
+
+                    // Remove substitute and archive markers from the schedule (history centralized)
+                    delete schedule[key].substituteTeacher;
+                    delete schedule[key].substituteArchivedTeacher;
+                    delete schedule[key].substituteStatus;
+                    delete schedule[key].substituteArchivedAt;
+
+                    await updateDoc(docRef, { schedule, updatedAt: serverTimestamp() });
+                    alert('Substitution archived to history.');
+                    setShowSubModal(false);
+                    setSelectedSubstitution(null);
+                  } else {
+                    alert('No substitution found in that slot.');
+                  }
+                } catch (err) {
+                  console.error('Failed to archive substitution', err);
+                  alert('Unable to archive substitution.');
+                }
+              }} style={{ background: '#ef4444', color: '#fff', padding: '10px 16px', borderRadius: 8, border: 'none', fontWeight: 700 }}>Archive Substitute</button>
             </div>
           </div>
         </div>

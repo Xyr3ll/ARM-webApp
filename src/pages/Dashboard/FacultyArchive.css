@@ -31,6 +31,26 @@
 .faculty-archive-table-wrapper {
   overflow-x: auto;
 }
+
+/* Constrain table height and make vertically scrollable */
+.faculty-archive-scroll {
+  max-height: 420px; /* adjust as needed */
+  overflow-y: auto;
+  border: 1px solid #f0f0f0;
+  border-radius: 6px;
+}
+
+/* Slightly different container for substitutions in case we want separate sizing */
+.faculty-archive-substitutions-wrapper {
+  overflow-x: auto;
+}
+
+.faculty-archive-substitutions-scroll {
+  max-height: 420px;
+  overflow-y: auto;
+  border: 1px solid #f0f0f0;
+  border-radius: 6px;
+}
 .faculty-archive-table {
   width: 100%;
   border-collapse: collapse;

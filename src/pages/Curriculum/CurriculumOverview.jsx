@@ -79,15 +79,15 @@ const CurriculumOverview = () => {
   return (
     <div className="curriculum-content-wrap">
       <div className="curriculum-content-header">
-        <h2>Curriculum Overview</h2>
-        <button className="curriculum-btn primary" onClick={() => navigate('add')}><HiPlus /> Add Curriculum</button>
+        <h2>Academic Overview</h2>
+        <button className="curriculum-btn primary" onClick={() => navigate('add')}><HiPlus /> Add Academic</button>
       </div>
 
       <div className="curriculum-card">
         <table style={{ width: '100%', borderCollapse: 'collapse', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
           <thead>
             <tr style={{ background: '#d3d3d3' }}>
-              <th style={{ padding: '14px 0', fontWeight: 700, fontSize: 16 }}>CURRICULUM YEAR</th>
+              <th style={{ padding: '14px 0', fontWeight: 700, fontSize: 16 }}>ACADEMIC YEAR</th>
               <th style={{ padding: '14px 0', fontWeight: 700, fontSize: 16 }}>PROGRAM CODE</th>
               <th style={{ padding: '14px 0', fontWeight: 700, fontSize: 16 }}>PROGRAM NAME</th>
               <th style={{ padding: '14px 0', fontWeight: 700, fontSize: 16 }}>TOTAL SUBJECTS</th>

@@ -4,6 +4,7 @@ import { HiArrowLeft, HiPrinter } from 'react-icons/hi2';
 import { useNavigate } from 'react-router-dom';
 import { db } from '../../firebase';
 import { collection, query, where, onSnapshot, doc, getDocs, getDoc } from 'firebase/firestore';
+import * as XLSX from 'xlsx';
 
 const ScheduleOverview = () => {
   const navigate = useNavigate();
@@ -898,28 +899,244 @@ const ScheduleOverview = () => {
   };
 
   const handlePrint = () => {
+    // export current visible schedule as a formatted Excel timetable
+    const fullTimeSlots = [
+      '7:00AM','7:30AM','8:00AM','8:30AM','9:00AM','9:30AM','10:00AM','10:30AM',
+      '11:00AM','11:30AM','12:00PM','12:30PM','1:00PM','1:30PM','2:00PM','2:30PM',
+      '3:00PM','3:30PM','4:00PM','4:30PM','5:00PM','5:30PM','6:00PM','6:30PM','7:00PM'
+    ];
+
+    const dayColumns = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+
+    const dayIndex = (day) => dayColumns.indexOf(day);
+
+    // helper to build a timetable sheet for a single entity (returns worksheet)
+    const buildTimetableSheet = (scheduleArr = [], title = '') => {
+      // create empty 2D array for AOA: header rows + time rows
+      const headerRow = ['TIME', ...dayColumns];
+      const aoa = [];
+      aoa.push([title]);
+      aoa.push([]);
+      aoa.push(headerRow);
+      // push time rows
+      fullTimeSlots.forEach(t => {
+        const row = [t];
+        for (let i=0;i<dayColumns.length;i++) row.push('');
+        aoa.push(row);
+      });
+
+      const ws = XLSX.utils.aoa_to_sheet(aoa);
+
+      // merges array
+      const merges = [];
+
+      // style helper
+      const cellStyleFor = (subject) => {
+        if (!subject) return {};
+        if (String(subject).toUpperCase().includes('CONSULTATION')) {
+          return { fill: { fgColor: { rgb: 'FF93C5FD' } }, font: { bold: true } };
+        }
+        if (String(subject).toUpperCase().includes('ADMIN')) {
+          return { fill: { fgColor: { rgb: 'FFFCA5A5' } }, font: { bold: true } };
+        }
+        // default
+        return { fill: { fgColor: { rgb: 'FFFEF08A' } }, font: { bold: true } };
+      };
+
+      // map schedule items into grid
+      (scheduleArr || []).forEach(item => {
+        const dIdx = dayIndex(item.day);
+        if (dIdx === -1) return;
+        const startIdx = fullTimeSlots.indexOf(item.startTime);
+        if (startIdx === -1) return;
+        const duration = item.durationSlots && Number.isFinite(item.durationSlots) ? Math.max(1, Math.floor(item.durationSlots)) : 1;
+        const rowStart = 4 + startIdx; // 1-based excel rows: title(1), blank(2), header(3), times start at 4
+        const rowEnd = rowStart + duration - 1;
+        const col = 2 + dIdx; // A=1 TIME, B=2 Monday
+
+        // cell address for top cell
+        const topAddr = XLSX.utils.encode_cell({ r: rowStart -1, c: col -1 });
+        // compute end time for display: prefer explicit endTime, otherwise derive from durationSlots
+        const computeEndTime = (start, dur, explicitEnd) => {
+          if (explicitEnd) return explicitEnd;
+          const sIdx = fullTimeSlots.indexOf(start);
+          if (sIdx === -1) return '';
+          const eIdx = sIdx + (dur && Number.isFinite(dur) ? Math.floor(dur) : 1);
+          return eIdx < fullTimeSlots.length ? fullTimeSlots[eIdx] : '';
+        };
+        const endTime = computeEndTime(item.startTime, item.durationSlots, item.endTime);
+
+        const displayTextParts = [];
+        if (item.subject) displayTextParts.push(item.subject);
+        const secondary = [];
+        if (item.room) secondary.push(item.room);
+        if (item.section) secondary.push(item.section);
+        if (secondary.length) displayTextParts.push(secondary.join(' / '));
+        // add time range as last line
+        if (item.startTime) displayTextParts.push(`${item.startTime}${endTime ? ` - ${endTime}` : ''}`);
+        ws[topAddr] = { t: 's', v: displayTextParts.join('\n') };
+
+        // add merge if span > 1
+        if (rowEnd > rowStart) {
+          merges.push({ s: { r: rowStart-1, c: col-1 }, e: { r: rowEnd-1, c: col-1 } });
+        }
+
+        // apply basic style (fill)
+        ws[topAddr].s = { 
+          fill: { patternType: 'solid', fgColor: { rgb: (cellStyleFor(item.subject).fill || {}).fgColor ? cellStyleFor(item.subject).fill.fgColor.rgb : 'FFFEF08A' } },
+          font: { bold: true }
+        };
+      });
+
+      // set merges
+      if (merges.length) ws['!merges'] = merges;
+
+      // set column widths
+      ws['!cols'] = [{ wch: 12 }, { wch: 30 }, { wch: 30 }, { wch: 30 }, { wch: 30 }, { wch: 30 }, { wch: 30 }];
+
+      // add some formatting for headers
+      const titleCell = 'A1';
+      ws[titleCell].s = { font: { bold: true, sz: 14 }, alignment: { horizontal: 'center' } };
+      // merge title across columns A:G
+      ws['!merges'] = (ws['!merges'] || []).concat([{ s: { r:0, c:0 }, e: { r:0, c:6 } }]);
+
+      // header row styling (row 3)
+      for (let c=0; c<7; c++) {
+        const addr = XLSX.utils.encode_cell({ r:2, c });
+        if (!ws[addr]) ws[addr] = { t: 's', v: headerRow[c] || '' };
+        ws[addr].s = { font: { bold: true }, fill: { patternType: 'solid', fgColor: { rgb: 'FFE5E7EB' } }, alignment: { horizontal: 'center', vertical: 'center' } };
+      }
+
+      return ws;
+    };
+
     try {
-      window.print();
+      const filenameSuffix = selectedYear ? `_${selectedYear.replace(/\s+/g,'')}` : '';
+      const wb = XLSX.utils.book_new();
+
+      if (activeTab === 'sections') {
+        if (!selectedSection || !sectionsData[selectedSection]) {
+          alert('No section selected or no data.');
+          return;
+        }
+        const sheet = buildTimetableSheet(sectionsData[selectedSection], `SECTION: ${selectedSection}`);
+        XLSX.utils.book_append_sheet(wb, sheet, `${selectedSection}`.slice(0,31));
+        XLSX.writeFile(wb, `section_${selectedSection}${filenameSuffix}.xlsx`);
+      } else if (activeTab === 'rooms') {
+        if (!selectedRoom || !roomsData[selectedRoom]) {
+          alert('No room selected or no data.');
+          return;
+        }
+        const sheet = buildTimetableSheet(roomsData[selectedRoom], `ROOM: ${selectedRoom}`);
+        XLSX.utils.book_append_sheet(wb, sheet, `${selectedRoom}`.slice(0,31));
+        XLSX.writeFile(wb, `room_${selectedRoom}${filenameSuffix}.xlsx`);
+      } else if (activeTab === 'professors') {
+        if (!selectedProfessor || !professorsData[selectedProfessor]) {
+          alert('No professor selected or no data.');
+          return;
+        }
+        const sheet = buildTimetableSheet(professorsData[selectedProfessor], `PROF: ${selectedProfessor}`);
+        XLSX.utils.book_append_sheet(wb, sheet, `${selectedProfessor}`.slice(0,31));
+        XLSX.writeFile(wb, `prof_${selectedProfessor}${filenameSuffix}.xlsx`);
+      }
     } catch (e) {
-      console.error('Print failed', e);
-      alert('Unable to print from this view.');
+      console.error('Export failed', e);
+      alert('Unable to export.');
     }
   };
-
+  
   const handlePrintAll = () => {
+    // export ALL visible entities in current tab into a single workbook (each entity gets its own sheet)
+    const fullTimeSlots = [
+      '7:00AM','7:30AM','8:00AM','8:30AM','9:00AM','9:30AM','10:00AM','10:30AM',
+      '11:00AM','11:30AM','12:00PM','12:30PM','1:00PM','1:30PM','2:00PM','2:30PM',
+      '3:00PM','3:30PM','4:00PM','4:30PM','5:00PM','5:30PM','6:00PM','6:30PM','7:00PM'
+    ];
+    const dayColumns = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+
+    const buildTimetableSheet = (scheduleArr = [], title = '') => {
+      const headerRow = ['TIME', ...dayColumns];
+      const aoa = [];
+      aoa.push([title]);
+      aoa.push([]);
+      aoa.push(headerRow);
+      fullTimeSlots.forEach(t => {
+        const row = [t];
+        for (let i=0;i<dayColumns.length;i++) row.push('');
+        aoa.push(row);
+      });
+      const ws = XLSX.utils.aoa_to_sheet(aoa);
+      const merges = [];
+
+      const dayIndex = (day) => dayColumns.indexOf(day);
+      (scheduleArr || []).forEach(item => {
+        const dIdx = dayIndex(item.day);
+        if (dIdx === -1) return;
+        const startIdx = fullTimeSlots.indexOf(item.startTime);
+        if (startIdx === -1) return;
+        const duration = item.durationSlots && Number.isFinite(item.durationSlots) ? Math.max(1, Math.floor(item.durationSlots)) : 1;
+        const rowStart = 4 + startIdx;
+        const rowEnd = rowStart + duration - 1;
+        const col = 2 + dIdx;
+        const topAddr = XLSX.utils.encode_cell({ r: rowStart -1, c: col -1 });
+        const computeEndTime = (start, dur, explicitEnd) => {
+          if (explicitEnd) return explicitEnd;
+          const sIdx = fullTimeSlots.indexOf(start);
+          if (sIdx === -1) return '';
+          const eIdx = sIdx + (dur && Number.isFinite(dur) ? Math.floor(dur) : 1);
+          return eIdx < fullTimeSlots.length ? fullTimeSlots[eIdx] : '';
+        };
+        const endTime = computeEndTime(item.startTime, item.durationSlots, item.endTime);
+        const displayTextParts = [];
+        if (item.subject) displayTextParts.push(item.subject);
+        const secondary = [];
+        if (item.room) secondary.push(item.room);
+        if (item.section) secondary.push(item.section);
+        if (secondary.length) displayTextParts.push(secondary.join(' / '));
+        if (item.startTime) displayTextParts.push(`${item.startTime}${endTime ? ` - ${endTime}` : ''}`);
+        ws[topAddr] = { t: 's', v: displayTextParts.join('\n') };
+        if (rowEnd > rowStart) merges.push({ s: { r: rowStart-1, c: col-1 }, e: { r: rowEnd-1, c: col-1 } });
+      });
+      if (merges.length) ws['!merges'] = merges;
+      ws['!cols'] = [{ wch: 12 }, { wch: 30 }, { wch: 30 }, { wch: 30 }, { wch: 30 }, { wch: 30 }, { wch: 30 }];
+      ws['!merges'] = (ws['!merges'] || []).concat([{ s: { r:0, c:0 }, e: { r:0, c:6 } }]);
+      return ws;
+    };
+
     try {
-      setIsPrintAll(true);
-      setTimeout(() => {
-        window.print();
-        setTimeout(() => setIsPrintAll(false), 0);
-      }, 50);
+      const filenameSuffix = selectedYear ? `_${selectedYear.replace(/\s+/g,'')}` : '';
+      const wb = XLSX.utils.book_new();
+      if (activeTab === 'sections') {
+        const filtered = Object.entries(sectionsData).filter(([_, sched]) => Array.isArray(sched) && sched.length > 0);
+        if (filtered.length === 0) { alert('No schedules to export.'); return; }
+        filtered.forEach(([section, sched]) => {
+          const sheet = buildTimetableSheet(sched, `SECTION: ${section}`);
+          XLSX.utils.book_append_sheet(wb, sheet, `${section}`.slice(0,31));
+        });
+        XLSX.writeFile(wb, `all_sections${filenameSuffix}.xlsx`);
+      } else if (activeTab === 'rooms') {
+        const filtered = Object.entries(roomsData).filter(([_, sched]) => Array.isArray(sched) && sched.length > 0);
+        if (filtered.length === 0) { alert('No room schedules to export.'); return; }
+        filtered.forEach(([room, sched]) => {
+          const sheet = buildTimetableSheet(sched, `ROOM: ${room}`);
+          XLSX.utils.book_append_sheet(wb, sheet, `${room}`.slice(0,31));
+        });
+        XLSX.writeFile(wb, `all_rooms${filenameSuffix}.xlsx`);
+      } else if (activeTab === 'professors') {
+        const filtered = Object.entries(professorsData).filter(([_, sched]) => Array.isArray(sched) && sched.length > 0);
+        if (filtered.length === 0) { alert('No professors schedules to export.'); return; }
+        filtered.forEach(([prof, sched]) => {
+          const sheet = buildTimetableSheet(sched, `PROF: ${prof}`);
+          XLSX.utils.book_append_sheet(wb, sheet, `${prof}`.slice(0,31));
+        });
+        XLSX.writeFile(wb, `all_professors${filenameSuffix}.xlsx`);
+      }
     } catch (e) {
-      console.error('Print-all failed', e);
-      setIsPrintAll(false);
-      alert('Unable to print all from this view.');
+      console.error('Export-all failed', e);
+      alert('Unable to export all.');
     }
   };
-
+  
   return (
     <div className="schedule-overview-wrap">
       <div className="schedule-overview-header">
@@ -930,10 +1147,10 @@ const ScheduleOverview = () => {
           <h2 className="schedule-title">Schedules</h2>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button className="schedule-print-btn" onClick={handlePrint} title="Print current table">
+          <button className="schedule-print-btn" onClick={handlePrint} title="Download current table (Excel)">
             <HiPrinter />
           </button>
-          <button className="schedule-print-btn" onClick={handlePrintAll} title="Print all tables in this tab" style={{ padding: '10px 12px' }}>
+          <button className="schedule-print-btn" onClick={handlePrintAll} title="Download all tables in this tab (Excel)" style={{ padding: '10px 12px' }}>
             <HiPrinter /> <span style={{ fontSize: 12, marginLeft: 6 }}>All</span>
           </button>
         </div>

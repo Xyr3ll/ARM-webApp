@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { FaUserEdit } from 'react-icons/fa';
-import { collection, onSnapshot, query, where, getDocs, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, onSnapshot, query, where, getDocs, updateDoc, serverTimestamp, addDoc } from 'firebase/firestore';
 import { db } from '../../firebase';
 
 
@@ -193,7 +193,9 @@ export default function Substitution() {
   // Clear all substitutions for selectedProf
   // Remove substituteTeacher and restore original professor in schedules
   const handleClearAll = async () => {
+    // Instead of deleting the substitute, create a history record and mark the substitution as archived on the schedule slot
     const updatePromises = [];
+    const historyPromises = [];
     for (let i = 0; i < subjects.length; i++) {
       const subj = subjects[i];
       if (subj.section && subj.day && subj.startTime) {
@@ -202,12 +204,34 @@ export default function Substitution() {
         snap.forEach((docSnap) => {
           const docRef = docSnap.ref;
           const data = docSnap.data();
-          const professorAssignments = { ...(data.professorAssignments || {}) };
           const schedule = { ...(data.schedule || {}) };
           const key = `${subj.day}_${subj.startTime}`;
-          // Do NOT change professorAssignments, only remove substituteTeacher from the schedule slot
+          // Do NOT change professorAssignments; instead create history entry, archive the substitute value and mark substitution as archived
           if (schedule[key] && schedule[key].substituteTeacher) {
+            const archivedName = schedule[key].substituteTeacher;
+            const professorAssignments = data.professorAssignments || {};
+            const original = professorAssignments[key] || schedule[key].professor || schedule[key].instructor || '';
+            // Create a history-substitution document for global archive
+            const history = {
+              scheduleId: docSnap.id,
+              docKey: key,
+              section: data.sectionName || docSnap.id,
+              program: data.program || '',
+              day: subj.day,
+              startTime: subj.startTime,
+              endTime: schedule[key].endTime || subj.endTime || '',
+              subject: schedule[key].subject || subj.courseName || '',
+              originalProfessor: original,
+              substituteTeacher: archivedName,
+              archivedAt: serverTimestamp()
+            };
+            historyPromises.push(addDoc(collection(db, 'history-substitution'), history));
+
+            // Remove the visible substitute and any archive markers from the schedule so history is centralized
             delete schedule[key].substituteTeacher;
+            delete schedule[key].substituteArchivedTeacher;
+            delete schedule[key].substituteStatus;
+            delete schedule[key].substituteArchivedAt;
           }
           updatePromises.push(updateDoc(docRef, { 
             schedule,
@@ -218,6 +242,9 @@ export default function Substitution() {
     }
     if (updatePromises.length > 0) {
       await Promise.all(updatePromises);
+    }
+    if (historyPromises.length > 0) {
+      await Promise.all(historyPromises);
     }
     closeModal();
   };
@@ -460,7 +487,7 @@ export default function Substitution() {
                   letterSpacing: 1,
                   flex: 1
                 }}
-              >Clear All</button>
+              >Archive All</button>
             </div>
 
             {/* List of current substitute assignments for this professor */}

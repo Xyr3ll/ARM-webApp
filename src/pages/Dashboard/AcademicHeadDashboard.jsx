@@ -67,7 +67,7 @@ const AcademicHeadDashboard = () => {
                     isActive ? "side-link active" : "side-link"
                   }
                 >
-                  <HiClipboardDocumentList className="side-icon" /> Curriculum
+                  <HiClipboardDocumentList className="side-icon" /> Academic
                 </NavLink>
               </li>
               <li>
@@ -128,7 +128,7 @@ const AcademicHeadDashboard = () => {
                           isActive ? "side-link active" : "side-link"
                         }
                       >
-                        Curriculum Archive
+                        Academic Archive
                       </NavLink>
                     </li>
                   </ul>

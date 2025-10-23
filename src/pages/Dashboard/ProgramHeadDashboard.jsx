@@ -144,7 +144,7 @@ const ProgramHeadDashboard = () => {
                     isActive ? "side-link active" : "side-link"
                   }
                 >
-                  <HiArchiveBox className="side-icon" /> Archive Faculties
+                  <HiArchiveBox className="side-icon" /> Archives
                 </NavLink>
               </li>
               <li>
