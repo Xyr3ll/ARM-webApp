@@ -98,7 +98,7 @@ const CurriculumOverview = () => {
             {groupedArray.length === 0 ? (
               <tr>
                 <td colSpan={5} style={{ padding: '24px', textAlign: 'center', color: '#666' }}>
-                  No curriculum found. Click "Add Curriculum" to create one.
+                  No Academic found. Click "Add Academic" to create one.
                 </td>
               </tr>
             ) : (

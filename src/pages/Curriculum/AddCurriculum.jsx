@@ -433,7 +433,7 @@ const AddCurriculum = () => {
             <HiArrowLeft />
           </button>
           <h2>
-            {isSubmitted ? "View Curriculum (Read and Add only)" : mode === "edit" ? "Edit Curriculum" : "Add Curriculum"}
+            {isSubmitted ? "View Academic (Read and Add only)" : mode === "edit" ? "Edit Academic" : "Add Academic"}
           </h2>
         </div>
         {isSubmitted ? (
