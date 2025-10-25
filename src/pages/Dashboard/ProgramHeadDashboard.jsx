@@ -88,6 +88,16 @@ const ProgramHeadDashboard = () => {
               </li>
               <li>
                 <NavLink
+                  to="approve-user"
+                  className={({ isActive }) =>
+                    isActive ? "side-link active" : "side-link"
+                  }
+                >
+                  <HiUserCircle className="side-icon" /> Approve User
+                </NavLink>
+              </li>
+              <li>
+                <NavLink
                   to="faculty-scheduling"
                   className={({ isActive }) =>
                     isActive ? "side-link active" : "side-link"

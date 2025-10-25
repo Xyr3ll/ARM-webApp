@@ -18,6 +18,7 @@ import ProgramHeadDashboard from './pages/Dashboard/ProgramHeadDashboard';
 import Substitution from './pages/Substitute/Substitution';
 import FacultyArchive from './pages/Dashboard/FacultyArchive';
 import Reservations from './pages/Reservations/Reservations';
+import ApproveUser from './pages/Dashboard/ApproveUser';
 
 function App() {
   return (
@@ -43,6 +44,7 @@ function App() {
         <Route path="archived-class-schedule" element={<ArchivedClassSchedule />} />
         <Route path="faculty-archive" element={<FacultyArchive />} />
         <Route path="reservations" element={<Reservations />} />
+  <Route path="approve-user" element={<ApproveUser />} />
         <Route path="substitution" element={<Substitution />} />
 
       </Route>

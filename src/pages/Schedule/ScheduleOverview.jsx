@@ -930,17 +930,18 @@ const ScheduleOverview = () => {
       // merges array
       const merges = [];
 
-      // style helper
+      // style helper (returns colors used for excel cell styling)
       const cellStyleFor = (subject) => {
-        if (!subject) return {};
-        if (String(subject).toUpperCase().includes('CONSULTATION')) {
-          return { fill: { fgColor: { rgb: 'FF93C5FD' } }, font: { bold: true } };
+        if (!subject) return { fill: { fgColor: { rgb: 'FFFFFFFF' } }, font: { bold: false, color: { rgb: 'FF000000' } } };
+        const s = String(subject).toUpperCase();
+        if (s.includes('CONSULTATION')) {
+          return { fill: { fgColor: { rgb: 'FF93C5FD' } }, font: { bold: true, color: { rgb: 'FF1E3A8A' } } };
         }
-        if (String(subject).toUpperCase().includes('ADMIN')) {
-          return { fill: { fgColor: { rgb: 'FFFCA5A5' } }, font: { bold: true } };
+        if (s.includes('ADMIN')) {
+          return { fill: { fgColor: { rgb: 'FFFCA5A5' } }, font: { bold: true, color: { rgb: 'FF7F1D1D' } } };
         }
         // default
-        return { fill: { fgColor: { rgb: 'FFFEF08A' } }, font: { bold: true } };
+        return { fill: { fgColor: { rgb: 'FFFEF08A' } }, font: { bold: true, color: { rgb: 'FF000000' } } };
       };
 
       // map schedule items into grid
@@ -981,10 +982,20 @@ const ScheduleOverview = () => {
           merges.push({ s: { r: rowStart-1, c: col-1 }, e: { r: rowEnd-1, c: col-1 } });
         }
 
-        // apply basic style (fill)
-        ws[topAddr].s = { 
-          fill: { patternType: 'solid', fgColor: { rgb: (cellStyleFor(item.subject).fill || {}).fgColor ? cellStyleFor(item.subject).fill.fgColor.rgb : 'FFFEF08A' } },
-          font: { bold: true }
+        // apply richer style (fill, font color, alignment, wrap, border)
+        const cs = cellStyleFor(item.subject) || {};
+        const fg = (cs.fill && cs.fill.fgColor && cs.fill.fgColor.rgb) ? cs.fill.fgColor.rgb : 'FFFEF08A';
+        const fontColor = (cs.font && cs.font.color && cs.font.color.rgb) ? cs.font.color.rgb : 'FF000000';
+        ws[topAddr].s = {
+          fill: { patternType: 'solid', fgColor: { rgb: fg } },
+          font: { bold: true, color: { rgb: fontColor } },
+          alignment: { wrapText: true, horizontal: 'center', vertical: 'center' },
+          border: {
+            top: { style: 'thin', color: { rgb: 'FFBBBBBB' } },
+            bottom: { style: 'thin', color: { rgb: 'FFBBBBBB' } },
+            left: { style: 'thin', color: { rgb: 'FFBBBBBB' } },
+            right: { style: 'thin', color: { rgb: 'FFBBBBBB' } }
+          }
         };
       });
 
@@ -1004,7 +1015,7 @@ const ScheduleOverview = () => {
       for (let c=0; c<7; c++) {
         const addr = XLSX.utils.encode_cell({ r:2, c });
         if (!ws[addr]) ws[addr] = { t: 's', v: headerRow[c] || '' };
-        ws[addr].s = { font: { bold: true }, fill: { patternType: 'solid', fgColor: { rgb: 'FFE5E7EB' } }, alignment: { horizontal: 'center', vertical: 'center' } };
+        ws[addr].s = { font: { bold: true, color: { rgb: 'FF1E3A8A' } }, fill: { patternType: 'solid', fgColor: { rgb: 'FFE5E7EB' } }, alignment: { horizontal: 'center', vertical: 'center' }, border: { top: { style: 'thin', color: { rgb: 'FFCCCCCC' } }, bottom: { style: 'thin', color: { rgb: 'FFCCCCCC' } } } };
       }
 
       return ws;
@@ -1067,6 +1078,14 @@ const ScheduleOverview = () => {
       });
       const ws = XLSX.utils.aoa_to_sheet(aoa);
       const merges = [];
+      // small style helper for this builder as well
+      const cellStyleFor = (subject) => {
+        if (!subject) return { fill: { fgColor: { rgb: 'FFFFFFFF' } }, font: { bold: false, color: { rgb: 'FF000000' } } };
+        const s = String(subject).toUpperCase();
+        if (s.includes('CONSULTATION')) return { fill: { fgColor: { rgb: 'FF93C5FD' } }, font: { bold: true, color: { rgb: 'FF1E3A8A' } } };
+        if (s.includes('ADMIN')) return { fill: { fgColor: { rgb: 'FFFCA5A5' } }, font: { bold: true, color: { rgb: 'FF7F1D1D' } } };
+        return { fill: { fgColor: { rgb: 'FFFEF08A' } }, font: { bold: true, color: { rgb: 'FF000000' } } };
+      };
 
       const dayIndex = (day) => dayColumns.indexOf(day);
       (scheduleArr || []).forEach(item => {
@@ -1095,6 +1114,21 @@ const ScheduleOverview = () => {
         if (secondary.length) displayTextParts.push(secondary.join(' / '));
         if (item.startTime) displayTextParts.push(`${item.startTime}${endTime ? ` - ${endTime}` : ''}`);
         ws[topAddr] = { t: 's', v: displayTextParts.join('\n') };
+        // apply richer style
+        const cs2 = cellStyleFor(item.subject) || {};
+        const fg2 = (cs2.fill && cs2.fill.fgColor && cs2.fill.fgColor.rgb) ? cs2.fill.fgColor.rgb : 'FFFEF08A';
+        const fontColor2 = (cs2.font && cs2.font.color && cs2.font.color.rgb) ? cs2.font.color.rgb : 'FF000000';
+        ws[topAddr].s = {
+          fill: { patternType: 'solid', fgColor: { rgb: fg2 } },
+          font: { bold: true, color: { rgb: fontColor2 } },
+          alignment: { wrapText: true, horizontal: 'center', vertical: 'center' },
+          border: {
+            top: { style: 'thin', color: { rgb: 'FFBBBBBB' } },
+            bottom: { style: 'thin', color: { rgb: 'FFBBBBBB' } },
+            left: { style: 'thin', color: { rgb: 'FFBBBBBB' } },
+            right: { style: 'thin', color: { rgb: 'FFBBBBBB' } }
+          }
+        };
         if (rowEnd > rowStart) merges.push({ s: { r: rowStart-1, c: col-1 }, e: { r: rowEnd-1, c: col-1 } });
       });
       if (merges.length) ws['!merges'] = merges;
