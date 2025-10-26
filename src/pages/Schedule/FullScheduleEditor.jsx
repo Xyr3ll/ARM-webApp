@@ -200,7 +200,6 @@ const FullScheduleEditor = ({
       "7:30PM",
       "8:00PM",
       "8:30PM",
-      "9:00PM",
     ],
     []
   );
