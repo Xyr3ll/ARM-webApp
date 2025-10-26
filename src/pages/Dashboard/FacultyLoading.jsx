@@ -29,29 +29,19 @@ export default function FacultyLoading() {
 
       // Attach schedules to each faculty only if ALL scheduled subject slots assigned to a professor belong to that faculty
       const facultyWithSchedules = facultyData.map(faculty => {
+        // Attach any schedule docs that include at least one slot assigned to this faculty.
+        // This is less strict than requiring every slot to be assigned, but ensures lab
+        // subjects assigned to the professor are not missed when computing auto-admin hours.
         const schedulesForFaculty = allSchedules.filter(sch => {
           const sched = sch.schedule || {};
-          // All keys that have a subject (these must all be assigned for us to attach the schedule)
           const subjectKeys = Object.keys(sched).filter(k => {
             const val = sched[k];
             return val && val.subject;
           });
-          if (subjectKeys.length === 0) return false; // nothing to attach
+          if (subjectKeys.length === 0) return false;
 
-          // Keys that have a subject AND have a professor assigned (via professorAssignments or inline)
-          const assignedKeys = subjectKeys.filter(k => {
-            const val = sched[k];
-            const profFromAssign = (sch.professorAssignments && sch.professorAssignments[k]) || '';
-            const profInline = val.professor || val.instructor || val.professorName || val.assignedProfessor || val.professorAssigned || '';
-            const prof = String(profFromAssign || profInline || '').trim();
-            return prof !== '';
-          });
-
-          // Only attach the schedule if every subject slot has an assigned professor
-          if (assignedKeys.length !== subjectKeys.length) return false;
-
-          // And ensure every assigned professor matches this faculty
-          return assignedKeys.every(k => {
+          // If any subject slot in this schedule is assigned to this faculty (either via professorAssignments or inline), include it
+          return subjectKeys.some(k => {
             const val = sched[k];
             const profFromAssign = (sch.professorAssignments && sch.professorAssignments[k]) || '';
             const profInline = val.professor || val.instructor || val.professorName || val.assignedProfessor || val.professorAssigned || '';
@@ -107,16 +97,34 @@ export default function FacultyLoading() {
     if (!faculty || !faculty.schedules || !Array.isArray(faculty.schedules)) return 0;
 
     let totalAdminHours = 0;
+    const profName = String(faculty.professor || '').trim();
+
     faculty.schedules.forEach(scheduleDoc => {
-      if (!scheduleDoc.schedule) return;
-      Object.entries(scheduleDoc.schedule).forEach(([key, value]) => {
-        if (value && value.subject && value.subject.toLowerCase().includes('lab')) {
-          // Each durationSlot is 30 minutes, so half of 2 slots = 1 slot = 30 minutes = 0.5 hour
-          const durationSlots = value.durationSlots || 1;
-          const slotMinutes = 30;
-          const totalMinutes = (durationSlots / 2) * slotMinutes;
-          totalAdminHours += totalMinutes / 60; // convert to hours
-        }
+      if (!scheduleDoc || !scheduleDoc.schedule) return;
+      const sched = scheduleDoc.schedule || {};
+      const professorAssignments = scheduleDoc.professorAssignments || {};
+
+      Object.entries(sched).forEach(([key, value]) => {
+        if (!value || !value.subject) return;
+
+        // Determine the assigned professor for this slot (prefer mapping then inline fields)
+        const profFromAssign = (professorAssignments && professorAssignments[key]) || '';
+        const profInline = value.professor || value.instructor || value.professorName || value.assignedProfessor || value.professorAssigned || '';
+        const assignedProf = String(profFromAssign || profInline || '').trim();
+
+        // Only count slots assigned to this faculty
+        if (!assignedProf || assignedProf !== profName) return;
+
+        // Detect lab slots robustly: look for standalone 'lab' or 'laboratory' tokens or '(lab)'
+        const subjRaw = String(value.subject || '');
+        const isLab = /\b(?:lab|laboratory)\b/i.test(subjRaw) || /\(\s*lab\s*\)/i.test(subjRaw);
+        if (!isLab) return;
+
+        // durationSlots are 30-minute slots. Half of laboratory time counts as admin.
+        const durationSlots = Number(value.durationSlots) || 1;
+        // Each slot = 30 minutes. Admin minutes = (durationSlots * 30) / 2
+        const adminHours = (durationSlots * 30) / 2 / 60;
+        totalAdminHours += adminHours;
       });
     });
     return totalAdminHours;
