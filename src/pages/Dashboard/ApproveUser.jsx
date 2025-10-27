@@ -190,20 +190,29 @@ export default function ApproveUser() {
                   </td>
                   <td style={{ padding: 8 }}>
                     <div style={{ display: "flex", gap: 8 }}>
-                      <button
-                        onClick={() => handleApprove(u.id)}
-                        disabled={!!rowLoading[u.id]}
-                        style={{ padding: "6px 10px", borderRadius: 6, background: "#0a74da", color: "white", border: "none", cursor: !!rowLoading[u.id] ? "wait" : "pointer" }}
-                      >
-                        {rowLoading[u.id] ? "..." : "Approve"}
-                      </button>
-                      <button
-                        onClick={() => handleDecline(u.id)}
-                        disabled={!!rowLoading[u.id]}
-                        style={{ padding: "6px 10px", borderRadius: 6, background: "#e55353", color: "white", border: "none", cursor: !!rowLoading[u.id] ? "wait" : "pointer" }}
-                      >
-                        {rowLoading[u.id] ? "..." : "Decline"}
-                      </button>
+                      {(() => {
+                        const hasStatus = !!u.approved || !!u.declined;
+                        const isBusy = !!rowLoading[u.id];
+                        const disabled = isBusy || hasStatus;
+                        return (
+                          <>
+                            <button
+                              onClick={() => handleApprove(u.id)}
+                              disabled={disabled}
+                              style={{ padding: "6px 10px", borderRadius: 6, background: "#0a74da", color: "white", border: "none", cursor: disabled ? (isBusy ? "wait" : "not-allowed") : "pointer", opacity: disabled ? 0.65 : 1 }}
+                            >
+                              {isBusy ? "..." : "Approve"}
+                            </button>
+                            <button
+                              onClick={() => handleDecline(u.id)}
+                              disabled={disabled}
+                              style={{ padding: "6px 10px", borderRadius: 6, background: "#e55353", color: "white", border: "none", cursor: disabled ? (isBusy ? "wait" : "not-allowed") : "pointer", opacity: disabled ? 0.65 : 1 }}
+                            >
+                              {isBusy ? "..." : "Decline"}
+                            </button>
+                          </>
+                        );
+                      })()}
                     </div>
                   </td>
                 </tr>
