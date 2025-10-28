@@ -44,18 +44,18 @@ const ScheduleOverview = () => {
   const handleYearChange = (e) => {
     const value = e.target.value;
     const cleaned = value.replace(/\D/g, '');
-    
+
     // Validate year when 4 digits are entered
     if (cleaned.length === 4) {
       const year = parseInt(cleaned, 10);
       const currentYear = new Date().getFullYear();
-      
+
       if (year > currentYear) {
         alert(`Cannot select a year beyond ${currentYear}. Please enter ${currentYear} or earlier.`);
         return;
       }
     }
-    
+
     const formatted = formatSchoolYear(value);
     setSelectedYear(formatted);
   };
@@ -81,16 +81,16 @@ const ScheduleOverview = () => {
         const data = docSnap.data();
         // Skip archived schedules
         if (String(data?.status).toLowerCase() === 'archived') return;
-        
+
         // Filter by year if specified
         if (selectedYear) {
           const docYear = data.year || '';
-          const yearMatch = docYear === selectedYear || 
-                           docYear.startsWith(selectedYear.split('-')[0]) ||
-                           selectedYear.startsWith(docYear.split('-')[0]);
+          const yearMatch = docYear === selectedYear ||
+            docYear.startsWith(selectedYear.split('-')[0]) ||
+            selectedYear.startsWith(docYear.split('-')[0]);
           if (!yearMatch) return;
         }
-        
+
         const sectionName = data.sectionName || docSnap.id;
         const schedule = data.schedule || {};
         // Build section schedules
@@ -130,7 +130,7 @@ const ScheduleOverview = () => {
     return () => unsub();
   }, [selectedProgram, selectedSemester, selectedYearLevel, selectedYear]);
 
-    // Also listen in real-time to nested schedule docs under gradeLevelSection/<program>/sections
+  // Also listen in real-time to nested schedule docs under gradeLevelSection/<program>/sections
   useEffect(() => {
     const programDoc = doc(db, 'gradeLevelSection', String(selectedProgram || ''));
     const sectionsCol = collection(programDoc, 'sections');
@@ -154,16 +154,16 @@ const ScheduleOverview = () => {
           // If user selects 'All', treat it as no-filter
           const matchesSemester = !data?.semester || selectedSemester === 'All' || data.semester === selectedSemester;
           const matchesYearLevel = !data?.yearLevel || selectedYearLevel === 'All' || data.yearLevel === selectedYearLevel;
-          
+
           // Filter by year if specified
           let matchesYear = true;
           if (selectedYear && data?.year) {
             const docYear = data.year;
-            matchesYear = docYear === selectedYear || 
-                         docYear.startsWith(selectedYear.split('-')[0]) ||
-                         selectedYear.startsWith(docYear.split('-')[0]);
+            matchesYear = docYear === selectedYear ||
+              docYear.startsWith(selectedYear.split('-')[0]) ||
+              selectedYear.startsWith(docYear.split('-')[0]);
           }
-          
+
           const items = [];
           if (matchesSemester && matchesYearLevel && matchesYear) {
             Object.entries(schedule).forEach(([key, val]) => {
@@ -188,7 +188,7 @@ const ScheduleOverview = () => {
 
     return () => {
       unsubSections();
-      unsubscribers.forEach((u) => { try { u(); } catch {} });
+      unsubscribers.forEach((u) => { try { u(); } catch { } });
     };
   }, [selectedProgram, selectedSemester, selectedYearLevel, selectedYear]);
 
@@ -320,13 +320,13 @@ const ScheduleOverview = () => {
   const renderScheduleGrid = (scheduleData, entityName) => {
     // Enhanced time slots to cover full day
     const fullTimeSlots = [
-      '7:00AM','7:30AM','8:00AM','8:30AM','9:00AM','9:30AM','10:00AM','10:30AM',
-      '11:00AM','11:30AM','12:00PM','12:30PM','1:00PM','1:30PM','2:00PM','2:30PM',
-      '3:00PM','3:30PM','4:00PM','4:30PM','5:00PM','5:30PM','6:00PM','6:30PM','7:00PM', '7:30PM', '8:00PM', '8:30PM'
+      '7:00AM', '7:30AM', '8:00AM', '8:30AM', '9:00AM', '9:30AM', '10:00AM', '10:30AM',
+      '11:00AM', '11:30AM', '12:00PM', '12:30PM', '1:00PM', '1:30PM', '2:00PM', '2:30PM',
+      '3:00PM', '3:30PM', '4:00PM', '4:30PM', '5:00PM', '5:30PM', '6:00PM', '6:30PM', '7:00PM', '7:30PM', '8:00PM', '8:30PM'
     ];
     const rowHeight = 40; // keep in sync with .schedule-grid-row min-height
     const getTimeIndex = (t) => fullTimeSlots.indexOf(t);
-    
+
     const getScheduleForSlot = (day, time) => scheduleData.find(item => item.day === day && item.startTime === time);
     const getVisualSlots = (item) => {
       if (!item) return 1;
@@ -813,7 +813,8 @@ const ScheduleOverview = () => {
           }
           return true;
         });
-        
+
+        // If no matches, show a friendly message (search input is rendered at top-level)
         if (filteredProfessorEntries.length === 0) {
           return (
             <div style={{ textAlign: 'center', color: '#888', marginTop: 60, fontSize: 18 }}>
@@ -828,7 +829,7 @@ const ScheduleOverview = () => {
           : (filteredProfessorEntries[0]?.[0] || null);
         if (selectedProfessor !== selected) setSelectedProfessor(selected);
 
-  // Mini card for professors
+        // Mini card for professors
         const renderMiniProfessorCard = (professorName, schedule, isActive) => (
           <div
             key={professorName}
@@ -883,44 +884,34 @@ const ScheduleOverview = () => {
 
         return (
           <>
-            <div className="schedule-filter-row" style={{ marginBottom: 12, display: 'flex', gap: 8 }}>
-              <input
-                type="text"
-                className="schedule-select"
-                value={professorSearch}
-                onChange={(e) => setProfessorSearch(e.target.value)}
-                placeholder="Search professor..."
-                style={{ minWidth: 220 }}
-              />
-            </div>
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 32, width: '100%' }}>
-            <div style={{ flex: 1, minWidth: 0 }} className={isPrintAll ? '' : 'print-area'}>
-              {selected && (
-                <div className="schedule-entity-card">
-                  <h3 className="schedule-entity-title" style={{ color: '#1e3a8a', fontWeight: 700, fontSize: 24 }}>{selected}</h3>
-                  {renderScheduleGrid(professorsData[selected], selected)}
+              <div style={{ flex: 1, minWidth: 0 }} className={isPrintAll ? '' : 'print-area'}>
+                {selected && (
+                  <div className="schedule-entity-card">
+                    <h3 className="schedule-entity-title" style={{ color: '#1e3a8a', fontWeight: 700, fontSize: 24 }}>{selected}</h3>
+                    {renderScheduleGrid(professorsData[selected], selected)}
+                  </div>
+                )}
+              </div>
+              {isPrintAll && (
+                <div
+                  className="print-area print-all-container"
+                  style={{ position: 'fixed', left: 0, top: 0, width: '100%', zIndex: 9999, background: '#fff', padding: 16 }}
+                >
+                  {filteredProfessorEntries.map(([professor, schedule]) => (
+                    <div key={`printall-prof-${professor}`} className="schedule-entity-card" style={{ marginBottom: 24, pageBreakAfter: 'always' }}>
+                      <h3 className="schedule-entity-title" style={{ color: '#1e3a8a', fontWeight: 700, fontSize: 24 }}>{professor}</h3>
+                      {renderScheduleGrid(schedule, professor)}
+                    </div>
+                  ))}
                 </div>
               )}
-            </div>
-            {isPrintAll && (
-              <div
-                className="print-area print-all-container"
-                style={{ position: 'fixed', left: 0, top: 0, width: '100%', zIndex: 9999, background: '#fff', padding: 16 }}
-              >
-                {filteredProfessorEntries.map(([professor, schedule]) => (
-                  <div key={`printall-prof-${professor}`} className="schedule-entity-card" style={{ marginBottom: 24, pageBreakAfter: 'always' }}>
-                    <h3 className="schedule-entity-title" style={{ color: '#1e3a8a', fontWeight: 700, fontSize: 24 }}>{professor}</h3>
-                    {renderScheduleGrid(schedule, professor)}
-                  </div>
-                ))}
+              <div style={{ minWidth: 220, maxWidth: 260, maxHeight: 700, overflowY: 'auto', marginTop: 8, marginRight: 8 }}>
+                {filteredProfessorEntries.map(([professor, schedule]) =>
+                  renderMiniProfessorCard(professor, schedule, professor === selected)
+                )}
               </div>
-            )}
-            <div style={{ minWidth: 220, maxWidth: 260, maxHeight: 700, overflowY: 'auto', marginTop: 8, marginRight: 8 }}>
-              {filteredProfessorEntries.map(([professor, schedule]) =>
-                renderMiniProfessorCard(professor, schedule, professor === selected)
-              )}
             </div>
-          </div>
           </>
         );
       }
@@ -933,12 +924,12 @@ const ScheduleOverview = () => {
   const handlePrint = () => {
     // export current visible schedule as a formatted Excel timetable
     const fullTimeSlots = [
-      '7:00AM','7:30AM','8:00AM','8:30AM','9:00AM','9:30AM','10:00AM','10:30AM',
-      '11:00AM','11:30AM','12:00PM','12:30PM','1:00PM','1:30PM','2:00PM','2:30PM',
-      '3:00PM','3:30PM','4:00PM','4:30PM','5:00PM','5:30PM','6:00PM','6:30PM','7:00PM', '7:30PM', '8:00PM', '8:30PM'
+      '7:00AM', '7:30AM', '8:00AM', '8:30AM', '9:00AM', '9:30AM', '10:00AM', '10:30AM',
+      '11:00AM', '11:30AM', '12:00PM', '12:30PM', '1:00PM', '1:30PM', '2:00PM', '2:30PM',
+      '3:00PM', '3:30PM', '4:00PM', '4:30PM', '5:00PM', '5:30PM', '6:00PM', '6:30PM', '7:00PM', '7:30PM', '8:00PM', '8:30PM'
     ];
 
-    const dayColumns = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const dayColumns = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
     const dayIndex = (day) => dayColumns.indexOf(day);
 
@@ -953,7 +944,7 @@ const ScheduleOverview = () => {
       // push time rows
       fullTimeSlots.forEach(t => {
         const row = [t];
-        for (let i=0;i<dayColumns.length;i++) row.push('');
+        for (let i = 0; i < dayColumns.length; i++) row.push('');
         aoa.push(row);
       });
 
@@ -988,7 +979,7 @@ const ScheduleOverview = () => {
         const col = 2 + dIdx; // A=1 TIME, B=2 Monday
 
         // cell address for top cell
-        const topAddr = XLSX.utils.encode_cell({ r: rowStart -1, c: col -1 });
+        const topAddr = XLSX.utils.encode_cell({ r: rowStart - 1, c: col - 1 });
         // compute end time for display: prefer explicit endTime, otherwise derive from durationSlots
         const computeEndTime = (start, dur, explicitEnd) => {
           if (explicitEnd) return explicitEnd;
@@ -1011,7 +1002,7 @@ const ScheduleOverview = () => {
 
         // add merge if span > 1
         if (rowEnd > rowStart) {
-          merges.push({ s: { r: rowStart-1, c: col-1 }, e: { r: rowEnd-1, c: col-1 } });
+          merges.push({ s: { r: rowStart - 1, c: col - 1 }, e: { r: rowEnd - 1, c: col - 1 } });
         }
 
         // apply richer style (fill, font color, alignment, wrap, border)
@@ -1041,11 +1032,11 @@ const ScheduleOverview = () => {
       const titleCell = 'A1';
       ws[titleCell].s = { font: { bold: true, sz: 14 }, alignment: { horizontal: 'center' } };
       // merge title across columns A:G
-      ws['!merges'] = (ws['!merges'] || []).concat([{ s: { r:0, c:0 }, e: { r:0, c:6 } }]);
+      ws['!merges'] = (ws['!merges'] || []).concat([{ s: { r: 0, c: 0 }, e: { r: 0, c: 6 } }]);
 
       // header row styling (row 3)
-      for (let c=0; c<7; c++) {
-        const addr = XLSX.utils.encode_cell({ r:2, c });
+      for (let c = 0; c < 7; c++) {
+        const addr = XLSX.utils.encode_cell({ r: 2, c });
         if (!ws[addr]) ws[addr] = { t: 's', v: headerRow[c] || '' };
         ws[addr].s = { font: { bold: true, color: { rgb: 'FF1E3A8A' } }, fill: { patternType: 'solid', fgColor: { rgb: 'FFE5E7EB' } }, alignment: { horizontal: 'center', vertical: 'center' }, border: { top: { style: 'thin', color: { rgb: 'FFCCCCCC' } }, bottom: { style: 'thin', color: { rgb: 'FFCCCCCC' } } } };
       }
@@ -1054,7 +1045,7 @@ const ScheduleOverview = () => {
     };
 
     try {
-      const filenameSuffix = selectedYear ? `_${selectedYear.replace(/\s+/g,'')}` : '';
+      const filenameSuffix = selectedYear ? `_${selectedYear.replace(/\s+/g, '')}` : '';
       const wb = XLSX.utils.book_new();
 
       if (activeTab === 'sections') {
@@ -1063,7 +1054,7 @@ const ScheduleOverview = () => {
           return;
         }
         const sheet = buildTimetableSheet(sectionsData[selectedSection], `SECTION: ${selectedSection}`);
-        XLSX.utils.book_append_sheet(wb, sheet, `${selectedSection}`.slice(0,31));
+        XLSX.utils.book_append_sheet(wb, sheet, `${selectedSection}`.slice(0, 31));
         XLSX.writeFile(wb, `section_${selectedSection}${filenameSuffix}.xlsx`);
       } else if (activeTab === 'rooms') {
         if (!selectedRoom || !roomsData[selectedRoom]) {
@@ -1071,7 +1062,7 @@ const ScheduleOverview = () => {
           return;
         }
         const sheet = buildTimetableSheet(roomsData[selectedRoom], `ROOM: ${selectedRoom}`);
-        XLSX.utils.book_append_sheet(wb, sheet, `${selectedRoom}`.slice(0,31));
+        XLSX.utils.book_append_sheet(wb, sheet, `${selectedRoom}`.slice(0, 31));
         XLSX.writeFile(wb, `room_${selectedRoom}${filenameSuffix}.xlsx`);
       } else if (activeTab === 'professors') {
         if (!selectedProfessor || !professorsData[selectedProfessor]) {
@@ -1079,7 +1070,7 @@ const ScheduleOverview = () => {
           return;
         }
         const sheet = buildTimetableSheet(professorsData[selectedProfessor], `PROF: ${selectedProfessor}`);
-        XLSX.utils.book_append_sheet(wb, sheet, `${selectedProfessor}`.slice(0,31));
+        XLSX.utils.book_append_sheet(wb, sheet, `${selectedProfessor}`.slice(0, 31));
         XLSX.writeFile(wb, `prof_${selectedProfessor}${filenameSuffix}.xlsx`);
       }
     } catch (e) {
@@ -1087,15 +1078,15 @@ const ScheduleOverview = () => {
       alert('Unable to export.');
     }
   };
-  
+
   const handlePrintAll = () => {
     // export ALL visible entities in current tab into a single workbook (each entity gets its own sheet)
     const fullTimeSlots = [
-      '7:00AM','7:30AM','8:00AM','8:30AM','9:00AM','9:30AM','10:00AM','10:30AM',
-      '11:00AM','11:30AM','12:00PM','12:30PM','1:00PM','1:30PM','2:00PM','2:30PM',
-      '3:00PM','3:30PM','4:00PM','4:30PM','5:00PM','5:30PM','6:00PM','6:30PM','7:00PM', '7:30PM', '8:00PM', '8:30PM'
+      '7:00AM', '7:30AM', '8:00AM', '8:30AM', '9:00AM', '9:30AM', '10:00AM', '10:30AM',
+      '11:00AM', '11:30AM', '12:00PM', '12:30PM', '1:00PM', '1:30PM', '2:00PM', '2:30PM',
+      '3:00PM', '3:30PM', '4:00PM', '4:30PM', '5:00PM', '5:30PM', '6:00PM', '6:30PM', '7:00PM', '7:30PM', '8:00PM', '8:30PM'
     ];
-    const dayColumns = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const dayColumns = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
     const buildTimetableSheet = (scheduleArr = [], title = '') => {
       const headerRow = ['TIME', ...dayColumns];
@@ -1105,7 +1096,7 @@ const ScheduleOverview = () => {
       aoa.push(headerRow);
       fullTimeSlots.forEach(t => {
         const row = [t];
-        for (let i=0;i<dayColumns.length;i++) row.push('');
+        for (let i = 0; i < dayColumns.length; i++) row.push('');
         aoa.push(row);
       });
       const ws = XLSX.utils.aoa_to_sheet(aoa);
@@ -1129,7 +1120,7 @@ const ScheduleOverview = () => {
         const rowStart = 4 + startIdx;
         const rowEnd = rowStart + duration - 1;
         const col = 2 + dIdx;
-        const topAddr = XLSX.utils.encode_cell({ r: rowStart -1, c: col -1 });
+        const topAddr = XLSX.utils.encode_cell({ r: rowStart - 1, c: col - 1 });
         const computeEndTime = (start, dur, explicitEnd) => {
           if (explicitEnd) return explicitEnd;
           const sIdx = fullTimeSlots.indexOf(start);
@@ -1161,23 +1152,23 @@ const ScheduleOverview = () => {
             right: { style: 'thin', color: { rgb: 'FFBBBBBB' } }
           }
         };
-        if (rowEnd > rowStart) merges.push({ s: { r: rowStart-1, c: col-1 }, e: { r: rowEnd-1, c: col-1 } });
+        if (rowEnd > rowStart) merges.push({ s: { r: rowStart - 1, c: col - 1 }, e: { r: rowEnd - 1, c: col - 1 } });
       });
       if (merges.length) ws['!merges'] = merges;
       ws['!cols'] = [{ wch: 12 }, { wch: 30 }, { wch: 30 }, { wch: 30 }, { wch: 30 }, { wch: 30 }, { wch: 30 }];
-      ws['!merges'] = (ws['!merges'] || []).concat([{ s: { r:0, c:0 }, e: { r:0, c:6 } }]);
+      ws['!merges'] = (ws['!merges'] || []).concat([{ s: { r: 0, c: 0 }, e: { r: 0, c: 6 } }]);
       return ws;
     };
 
     try {
-      const filenameSuffix = selectedYear ? `_${selectedYear.replace(/\s+/g,'')}` : '';
+      const filenameSuffix = selectedYear ? `_${selectedYear.replace(/\s+/g, '')}` : '';
       const wb = XLSX.utils.book_new();
       if (activeTab === 'sections') {
         const filtered = Object.entries(sectionsData).filter(([_, sched]) => Array.isArray(sched) && sched.length > 0);
         if (filtered.length === 0) { alert('No schedules to export.'); return; }
         filtered.forEach(([section, sched]) => {
           const sheet = buildTimetableSheet(sched, `SECTION: ${section}`);
-          XLSX.utils.book_append_sheet(wb, sheet, `${section}`.slice(0,31));
+          XLSX.utils.book_append_sheet(wb, sheet, `${section}`.slice(0, 31));
         });
         XLSX.writeFile(wb, `all_sections${filenameSuffix}.xlsx`);
       } else if (activeTab === 'rooms') {
@@ -1185,7 +1176,7 @@ const ScheduleOverview = () => {
         if (filtered.length === 0) { alert('No room schedules to export.'); return; }
         filtered.forEach(([room, sched]) => {
           const sheet = buildTimetableSheet(sched, `ROOM: ${room}`);
-          XLSX.utils.book_append_sheet(wb, sheet, `${room}`.slice(0,31));
+          XLSX.utils.book_append_sheet(wb, sheet, `${room}`.slice(0, 31));
         });
         XLSX.writeFile(wb, `all_rooms${filenameSuffix}.xlsx`);
       } else if (activeTab === 'professors') {
@@ -1193,7 +1184,7 @@ const ScheduleOverview = () => {
         if (filtered.length === 0) { alert('No professors schedules to export.'); return; }
         filtered.forEach(([prof, sched]) => {
           const sheet = buildTimetableSheet(sched, `PROF: ${prof}`);
-          XLSX.utils.book_append_sheet(wb, sheet, `${prof}`.slice(0,31));
+          XLSX.utils.book_append_sheet(wb, sheet, `${prof}`.slice(0, 31));
         });
         XLSX.writeFile(wb, `all_professors${filenameSuffix}.xlsx`);
       }
@@ -1202,7 +1193,7 @@ const ScheduleOverview = () => {
       alert('Unable to export all.');
     }
   };
-  
+
   return (
     <div className="schedule-overview-wrap">
       <div className="schedule-overview-header">
@@ -1241,7 +1232,23 @@ const ScheduleOverview = () => {
         >
           Professors
         </button>
+
       </div>
+
+      {activeTab === 'professors' && (
+        <div style={{ padding: '12px 24px 0 24px' }}>
+          <div className="schedule-filter-row" style={{ marginBottom: 12, display: 'flex', gap: 8 }}>
+            <input
+              type="text"
+              className="schedule-select"
+              value={professorSearch}
+              onChange={(e) => setProfessorSearch(e.target.value)}
+              placeholder="Search professor..."
+              style={{ minWidth: 320 }}
+            />
+          </div>
+        </div>
+      )}
 
       {renderContent()}
     </div>
