@@ -9,7 +9,7 @@ import * as XLSX from 'xlsx';
 const ScheduleOverview = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('sections');
-  const [selectedProgram, setSelectedProgram] = useState('BSIT');
+  const [selectedProgram, setSelectedProgram] = useState('All');
   const [selectedSemester, setSelectedSemester] = useState('1st');
   const [selectedYearLevel, setSelectedYearLevel] = useState('1st Year');
   const [selectedYear, setSelectedYear] = useState('');
@@ -27,6 +27,7 @@ const ScheduleOverview = () => {
   const [nestedRoomsData, setNestedRoomsData] = useState({});
   const [professorsData, setProfessorsData] = useState({});
   const [selectedProfessor, setSelectedProfessor] = useState(null);
+  const [professorSearch, setProfessorSearch] = useState('');
 
   const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -61,12 +62,16 @@ const ScheduleOverview = () => {
 
   // Fetch schedules from Firestore in real time (root collection)
   useEffect(() => {
-    let q = query(
-      collection(db, 'schedules'),
-      where('program', '==', selectedProgram),
-      where('semester', '==', selectedSemester)
-    );
-    if (selectedYearLevel) {
+    // build query but treat 'All' as no-filter
+    let base = collection(db, 'schedules');
+    let q = base;
+    if (selectedProgram && selectedProgram !== 'All') {
+      q = query(q, where('program', '==', selectedProgram));
+    }
+    if (selectedSemester && selectedSemester !== 'All') {
+      q = query(q, where('semester', '==', selectedSemester));
+    }
+    if (selectedYearLevel && selectedYearLevel !== 'All') {
       q = query(q, where('yearLevel', '==', selectedYearLevel));
     }
     const unsub = onSnapshot(q, (snap) => {
@@ -146,8 +151,9 @@ const ScheduleOverview = () => {
           }
           const schedule = data?.schedule || {};
           // Only include schedules that match the selected semester and year level, if the fields exist
-          const matchesSemester = !data?.semester || data.semester === selectedSemester;
-          const matchesYearLevel = !data?.yearLevel || data.yearLevel === selectedYearLevel;
+          // If user selects 'All', treat it as no-filter
+          const matchesSemester = !data?.semester || selectedSemester === 'All' || data.semester === selectedSemester;
+          const matchesYearLevel = !data?.yearLevel || selectedYearLevel === 'All' || data.yearLevel === selectedYearLevel;
           
           // Filter by year if specified
           let matchesYear = true;
@@ -494,6 +500,7 @@ const ScheduleOverview = () => {
                   onChange={(e) => setSelectedProgram(e.target.value)}
                   style={{ minWidth: 120 }}
                 >
+                  <option value="All">All</option>
                   <option value="BSIT">BSIT</option>
                   <option value="BSCS">BSCS</option>
                 </select>
@@ -503,6 +510,7 @@ const ScheduleOverview = () => {
                   onChange={(e) => setSelectedYearLevel(e.target.value)}
                   style={{ minWidth: 120 }}
                 >
+                  <option value="All">All</option>
                   <option value="1st Year">1st Year</option>
                   <option value="2nd Year">2nd Year</option>
                   <option value="3rd Year">3rd Year</option>
@@ -514,6 +522,7 @@ const ScheduleOverview = () => {
                   onChange={(e) => setSelectedSemester(e.target.value)}
                   style={{ minWidth: 120 }}
                 >
+                  <option value="All">All</option>
                   <option value="1st">1st Semester</option>
                   <option value="2nd">2nd Semester</option>
                 </select>
@@ -548,6 +557,7 @@ const ScheduleOverview = () => {
                 onChange={(e) => setSelectedProgram(e.target.value)}
                 style={{ minWidth: 120 }}
               >
+                <option value="All">All</option>
                 <option value="BSIT">BSIT</option>
                 <option value="BSCS">BSCS</option>
               </select>
@@ -557,6 +567,7 @@ const ScheduleOverview = () => {
                 onChange={(e) => setSelectedYearLevel(e.target.value)}
                 style={{ minWidth: 120 }}
               >
+                <option value="All">All</option>
                 <option value="1st Year">1st Year</option>
                 <option value="2nd Year">2nd Year</option>
                 <option value="3rd Year">3rd Year</option>
@@ -568,9 +579,9 @@ const ScheduleOverview = () => {
                 onChange={(e) => setSelectedSemester(e.target.value)}
                 style={{ minWidth: 120 }}
               >
+                <option value="All">All</option>
                 <option value="1st">1st Semester</option>
                 <option value="2nd">2nd Semester</option>
-                <option value="Summer">Summer</option>
               </select>
             </div>
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 32, width: '100%' }}>
@@ -626,6 +637,7 @@ const ScheduleOverview = () => {
                   onChange={(e) => setSelectedProgram(e.target.value)}
                   style={{ minWidth: 120 }}
                 >
+                  <option value="All">All</option>
                   <option value="BSIT">BSIT</option>
                   <option value="BSCS">BSCS</option>
                 </select>
@@ -648,7 +660,6 @@ const ScheduleOverview = () => {
                 >
                   <option value="1st">1st Semester</option>
                   <option value="2nd">2nd Semester</option>
-                  <option value="Summer">Summer</option>
                 </select>
               </div>
               <div style={{ textAlign: 'center', color: '#888', marginTop: 60, fontSize: 18 }}>
@@ -735,6 +746,7 @@ const ScheduleOverview = () => {
                 onChange={(e) => setSelectedProgram(e.target.value)}
                 style={{ minWidth: 120 }}
               >
+                <option value="All">All</option>
                 <option value="BSIT">BSIT</option>
                 <option value="BSCS">BSCS</option>
               </select>
@@ -744,6 +756,7 @@ const ScheduleOverview = () => {
                 onChange={(e) => setSelectedYearLevel(e.target.value)}
                 style={{ minWidth: 120 }}
               >
+                <option value="All">All</option>
                 <option value="1st Year">1st Year</option>
                 <option value="2nd Year">2nd Year</option>
                 <option value="3rd Year">3rd Year</option>
@@ -755,9 +768,9 @@ const ScheduleOverview = () => {
                 onChange={(e) => setSelectedSemester(e.target.value)}
                 style={{ minWidth: 120 }}
               >
+                <option value="All">All</option>
                 <option value="1st">1st Semester</option>
                 <option value="2nd">2nd Semester</option>
-                <option value="Summer">Summer</option>
               </select>
             </div>
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 32, width: '100%' }}>
@@ -792,8 +805,14 @@ const ScheduleOverview = () => {
         );
       }
       case 'professors': {
-        // Only show professors that have at least one schedule item
-        const filteredProfessorEntries = Object.entries(professorsData).filter(([_, schedule]) => Array.isArray(schedule) && schedule.length > 0);
+        // Only show professors that have at least one schedule item and match search
+        const filteredProfessorEntries = Object.entries(professorsData).filter(([name, schedule]) => {
+          if (!Array.isArray(schedule) || schedule.length === 0) return false;
+          if (professorSearch && professorSearch.trim() !== '') {
+            return String(name).toLowerCase().includes(professorSearch.trim().toLowerCase());
+          }
+          return true;
+        });
         
         if (filteredProfessorEntries.length === 0) {
           return (
@@ -809,7 +828,7 @@ const ScheduleOverview = () => {
           : (filteredProfessorEntries[0]?.[0] || null);
         if (selectedProfessor !== selected) setSelectedProfessor(selected);
 
-        // Mini card for professors
+  // Mini card for professors
         const renderMiniProfessorCard = (professorName, schedule, isActive) => (
           <div
             key={professorName}
@@ -863,7 +882,18 @@ const ScheduleOverview = () => {
         );
 
         return (
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 32, width: '100%' }}>
+          <>
+            <div className="schedule-filter-row" style={{ marginBottom: 12, display: 'flex', gap: 8 }}>
+              <input
+                type="text"
+                className="schedule-select"
+                value={professorSearch}
+                onChange={(e) => setProfessorSearch(e.target.value)}
+                placeholder="Search professor..."
+                style={{ minWidth: 220 }}
+              />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 32, width: '100%' }}>
             <div style={{ flex: 1, minWidth: 0 }} className={isPrintAll ? '' : 'print-area'}>
               {selected && (
                 <div className="schedule-entity-card">
@@ -891,12 +921,14 @@ const ScheduleOverview = () => {
               )}
             </div>
           </div>
+          </>
         );
       }
       default:
         return null;
     }
   };
+
 
   const handlePrint = () => {
     // export current visible schedule as a formatted Excel timetable
